@@ -16,6 +16,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { DebugPanel } from '../components/ui/DebugPanel';
 import { GoalItem } from '../components/shared/GoalItem';
 import { GoalForm } from '../components/shared/GoalForm';
 import { Timeline } from '../components/shared/Timeline';
@@ -149,6 +150,9 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Debug Panel */}
+      <DebugPanel todayDate={todayDate} />
+      
       <ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
@@ -180,7 +184,7 @@ export default function TodayScreen() {
             <View style={styles.heroTextContainer}>
               <Text style={styles.heroTitle}>Vandaag</Text>
               <Text style={styles.heroSubtitle}>
-                {new Date().toLocaleDateString('nl-NL', { 
+                {new Date(todayDate).toLocaleDateString('nl-NL', { 
                   weekday: 'long', 
                   day: 'numeric', 
                   month: 'long' 

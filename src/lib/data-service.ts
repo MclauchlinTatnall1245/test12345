@@ -120,7 +120,6 @@ export class DataService {
     const goal = dayPlan.goals.find(g => g.id === goalId);
     if (!goal) return;
 
-    const now = new Date();
     if (goal.completed) {
       // Mark as incomplete
       goal.completed = false;
@@ -128,7 +127,7 @@ export class DataService {
     } else {
       // Mark as completed
       goal.completed = true;
-      goal.completedAt = now;
+      goal.completedAt = new Date();
     }
 
     await this.saveDayPlan(dayPlan);
@@ -266,17 +265,45 @@ export class DataService {
 
   // === PLANNING METHODS ===
   static getActualTodayDate(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return TimeService.getCurrentDate();
   }
 
   static getSmartPlanningDate(): string {
-    const now = new Date();
-    const currentHour = now.getHours();
+    const currentHour = TimeService.getCurrentHour();
+    const config = TimeService.getConfig();
+    
+    // Get the smart "today" date (sync fallback)
+    const smartToday = this.getSmartTodayDate();
+    
+    // Tussen nightModeStartHour en nightModeEndHour: plan voor "vandaag" (huidige kalenderdag)
+    // Anders: plan voor "morgen" (volgende kalenderdag)
+    if (currentHour >= config.nightModeStartHour && currentHour < config.nightModeEndHour) {
+      // Night mode: check of smart today afwijkt van echte dag
+      const actualToday = this.getActualTodayDate();
+      if (smartToday !== actualToday) {
+        return actualToday; // Plan voor de echte kalenderdag
+      }
+      return smartToday; // Plan voor dezelfde dag als smart today
+    } else {
+      // Normale planning: morgen na de smart today datum
+      const tomorrow = new Date(smartToday);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Gebruik lokale datum, niet UTC
+      const year = tomorrow.getFullYear();
+      const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const day = String(tomorrow.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Async versie die accurater is
+  static async getSmartPlanningDateAsync(): Promise<string> {
+    const currentHour = TimeService.getCurrentHour();
     const config = TimeService.getConfig();
     
     // Get the smart "today" date
-    const smartToday = this.getSmartTodayDate();
+    const smartToday = await this.getSmartTodayDateAsync();
     
     // Tussen nightModeStartHour en nightModeEndHour: plan voor "vandaag" (huidige kalenderdag)
     // Anders: plan voor "morgen" (volgende kalenderdag)
@@ -292,7 +319,12 @@ export class DataService {
       // Normale planning: morgen na de smart today datum
       const tomorrow = new Date(smartToday);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      return tomorrow.toISOString().split('T')[0];
+      
+      // Gebruik lokale datum, niet UTC
+      const year = tomorrow.getFullYear();
+      const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+      const day = String(tomorrow.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
   }
 
@@ -301,6 +333,11 @@ export class DataService {
   // wordt de vorige dag als "vandaag" beschouwd
   static getSmartTodayDate(): string {
     return TimeService.getSmartTodayDate(this);
+  }
+
+  // Async versie die de volledige smart date logica implementeert
+  static async getSmartTodayDateAsync(): Promise<string> {
+    return await TimeService.getSmartTodayDateAsync(this);
   }
 
   static formatDate(date: string): string {
@@ -320,8 +357,7 @@ export class DataService {
     currentHour: number;
     explanation: string;
   } {
-    const now = new Date();
-    const currentHour = now.getHours();
+    const currentHour = TimeService.getCurrentHour();
     const config = TimeService.getConfig();
     const actualToday = this.getActualTodayDate();
     const smartToday = this.getSmartTodayDate();
@@ -419,7 +455,7 @@ export class SuggestionEngine {
   // ==========================================
 
   static getTodayDate(): string {
-    return new Date().toISOString().split('T')[0];
+    return TimeService.getCurrentDate();
   }
 
   static async saveReflection(reflection: Reflection): Promise<void> {

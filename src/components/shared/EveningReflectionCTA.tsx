@@ -31,12 +31,36 @@ export function EveningReflectionCTA({
 }: EveningReflectionCTAProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [hasReflection, setHasReflection] = useState<boolean>(false);
+  const [smartDate, setSmartDate] = useState<string>('');
+
+  // Functie om de smart date te bepalen
+  const determineSmartDate = async () => {
+    try {
+      const smartToday = await DataService.getSmartTodayDateAsync();
+      setSmartDate(smartToday);
+      
+      // Debug info
+      console.log('🔍 EveningReflectionCTA Smart Date:', {
+        smartToday,
+        currentRealDate: TimeService.getCurrentDate(),
+        currentHour: TimeService.getCurrentHour(),
+        isNightMode: TimeService.isNightMode()
+      });
+      
+      return smartToday;
+    } catch (error) {
+      console.log('Error determining smart date:', error);
+      const fallback = TimeService.getCurrentDate();
+      setSmartDate(fallback);
+      return fallback;
+    }
+  };
 
   // Functie om reflectie status te checken
   const checkReflection = async () => {
     try {
-      const today = TimeService.getCurrentDate();
-      const reflection = await DataService.getReflection(today);
+      const dateToCheck = await determineSmartDate();
+      const reflection = await DataService.getReflection(dateToCheck);
       setHasReflection(!!reflection);
     } catch (error) {
       console.log('Error checking reflection:', error);
@@ -73,9 +97,17 @@ export function EveningReflectionCTA({
   const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   const getTimeMessage = () => {
+    // Als we de smart date nog niet hebben, gebruik fallback
+    if (!smartDate) {
+      return "Doelen aan het laden...";
+    }
+
     if (hasReflection) {
+      const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
       return `Je hebt al gereflecteerd op vandaag (${completionPercentage}% voltooid).`;
     }
+    
+    const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
     
     if (timeCategory === 'night') {
       return `Het is al laat! Reflecteer op je dag (${completionPercentage}% voltooid) voordat je gaat slapen.`;

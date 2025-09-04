@@ -24,24 +24,68 @@ export function useTodayGoals(): UseTodayGoalsResult {
   const [dayPlan, setDayPlan] = useState<DayPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const todayDate = TimeService.getCurrentDate();
+  const [todayDate, setTodayDate] = useState<string>('');
+
+  // Functie om de smart today date te bepalen
+  const determineSmartTodayDate = useCallback(async () => {
+    try {
+      const smartDate = await DataService.getSmartTodayDateAsync();
+      setTodayDate(smartDate);
+      
+      // Extra debug info over system offset
+      const config = TimeService.getConfig();
+      if (config.systemTimeOffset !== 0) {
+        console.log('⚠️ System offset is active!', {
+          realDate: TimeService.getRawCurrentDate(),
+          adjustedDate: TimeService.getCurrentDate(),
+          systemOffset: config.systemTimeOffset,
+          smartDate
+        });
+      }
+      
+      return smartDate;
+    } catch (error) {
+      console.error('Error determining smart today date:', error);
+      // Fallback naar gewone datum
+      const fallbackDate = TimeService.getCurrentDate();
+      setTodayDate(fallbackDate);
+      return fallbackDate;
+    }
+  }, []);
 
   const loadTodaysPlan = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const plan = await DataService.getDayPlan(todayDate);
+      // Bepaal eerst de juiste datum
+      const currentTodayDate = await determineSmartTodayDate();
+      
+      // Debug info
+      console.log('🔍 useTodayGoals Debug:', {
+        currentTodayDate,
+        currentRealDate: TimeService.getCurrentDate(),
+        currentHour: TimeService.getCurrentHour(),
+        isNightMode: TimeService.isNightMode(),
+        dateMatches: currentTodayDate === TimeService.getCurrentDate()
+      });
+      
+      const plan = await DataService.getDayPlan(currentTodayDate);
       setDayPlan(plan);
       setGoals(plan?.goals || []);
+      
+      console.log('📅 Loaded plan for date:', currentTodayDate, 'Goals count:', plan?.goals?.length || 0);
+      
+      if (plan?.goals?.length) {
+        console.log('📋 Goals loaded:', plan.goals.map(g => ({ id: g.id, title: g.title, completed: g.completed })));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Er ging iets mis bij het laden van de doelen');
       console.error('Error loading today plan:', err);
     } finally {
       setLoading(false);
     }
-  }, [todayDate]);
+  }, [determineSmartTodayDate]);
 
   useEffect(() => {
     loadTodaysPlan();
