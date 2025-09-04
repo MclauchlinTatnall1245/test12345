@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useReflectionData } from '../../hooks/useReflectionData';
 import { StartScreen } from './screens/StartScreen';
 import { CompletionScreen } from './screens/CompletionScreen';
 import { NoGoalsScreen } from './screens/NoGoalsScreen';
 import { ReflectionWorkflow } from './screens/ReflectionWorkflow';
+import { HistoryView } from './screens/HistoryView';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../../navigation/AppNavigator';
 
@@ -40,6 +41,24 @@ export function EveningReflection({ navigation }: EveningReflectionProps) {
     setOverallFeeling,
     setGeneralNotes,
   } = useReflectionData();
+
+  // Listen for tab press to reset to start screen
+  useEffect(() => {
+    if (!navigation) return;
+
+    const unsubscribe = navigation.addListener('tabPress', (e) => {
+      // Only reset if we're not already on the start screen
+      if (!showStartScreen || hasStartedReflection || showHistory || isEditing) {
+        setShowStartScreen(true);
+        setHasStartedReflection(false);
+        setIsEditing(false);
+        setShowHistory(false);
+        setSelectedHistoryReflection(null);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, showStartScreen, hasStartedReflection, showHistory, isEditing, setIsEditing, setShowHistory, setSelectedHistoryReflection]);
 
   // Reset to start screen
   const handleBackToStart = () => {
@@ -85,12 +104,11 @@ export function EveningReflection({ navigation }: EveningReflectionProps) {
   // History view (can be accessed from both NoGoalsScreen and normal flow)
   if (showHistory) {
     return (
-      <NoGoalsScreen
-        today={today}
-        onBackToStart={handleBackToStart}
+      <HistoryView
         allReflections={allReflections}
         selectedHistoryReflection={selectedHistoryReflection}
-        onSelectHistoryReflection={setSelectedHistoryReflection}
+        onSelectReflection={setSelectedHistoryReflection}
+        onBackToStart={handleBackToStart}
       />
     );
   }

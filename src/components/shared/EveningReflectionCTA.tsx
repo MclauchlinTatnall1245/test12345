@@ -173,14 +173,11 @@ export function EveningReflectionCTA({
     <View style={styles.prominentContainer}>
       <Card style={StyleSheet.flatten([
         styles.prominentCard,
-        timeCategory === 'night' ? styles.nightCard : styles.eveningCard
+        styles.eveningCard
       ])}>
         {/* Decoratieve gradient achtergrond */}
         <LinearGradient
-          colors={timeCategory === 'night' 
-            ? ['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.9)']
-            : ['rgba(139, 92, 246, 0.05)', 'rgba(168, 85, 247, 0.02)']
-          }
+          colors={['rgba(139, 92, 246, 0.05)', 'rgba(168, 85, 247, 0.02)']}
           style={styles.prominentGradientBg}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 1}}
@@ -190,12 +187,12 @@ export function EveningReflectionCTA({
         <View style={[
           styles.decorativeCircle, 
           styles.decorativeCircleTop,
-          { backgroundColor: timeCategory === 'night' ? 'rgba(248, 250, 252, 0.1)' : 'rgba(139, 92, 246, 0.1)' }
+          { backgroundColor: 'rgba(139, 92, 246, 0.1)' }
         ]} />
         <View style={[
           styles.decorativeCircle, 
           styles.decorativeCircleBottom,
-          { backgroundColor: timeCategory === 'night' ? 'rgba(248, 250, 252, 0.05)' : 'rgba(168, 85, 247, 0.08)' }
+          { backgroundColor: 'rgba(168, 85, 247, 0.08)' }
         ]} />
 
         <View style={styles.prominentContent}>
@@ -203,13 +200,10 @@ export function EveningReflectionCTA({
           <View style={styles.prominentHeader}>
             <View style={[
               styles.prominentIconContainer,
-              timeCategory === 'night' ? styles.nightIconContainer : styles.eveningIconContainer
+              styles.eveningIconContainer
             ]}>
               <LinearGradient
-                colors={timeCategory === 'night'
-                  ? ['#FCD34D', '#F59E0B']
-                  : ['#8B5CF6', '#A855F7']
-                }
+                colors={['#8B5CF6', '#A855F7']}
                 style={styles.prominentIconGradient}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 1}}
@@ -224,7 +218,7 @@ export function EveningReflectionCTA({
             <View style={styles.prominentTextHeader}>
               <Text style={[
                 styles.prominentTitle,
-                { color: timeCategory === 'night' ? '#F8FAFC' : '#1e293b' }
+                { color: '#1e293b' }
               ]}>
                 {hasReflection 
                   ? 'Dag afgesloten' 
@@ -235,11 +229,11 @@ export function EveningReflectionCTA({
                 <Ionicons 
                   name="time-outline" 
                   size={14} 
-                  color={timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6'} 
+                  color="#8B5CF6" 
                 />
                 <Text style={[
                   styles.timeText,
-                  { color: timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6' }
+                  { color: '#8B5CF6' }
                 ]}>
                   {currentTime.toLocaleTimeString('nl-NL', { 
                     hour: '2-digit', 
@@ -253,7 +247,7 @@ export function EveningReflectionCTA({
           {/* Message */}
           <Text style={[
             styles.prominentMessage,
-            { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+            { color: '#64748b' }
           ]}>
             {getTimeMessage()}
           </Text>
@@ -262,18 +256,18 @@ export function EveningReflectionCTA({
           {totalGoals > 0 && (
             <View style={[
               styles.progressContainer,
-              timeCategory === 'night' ? styles.nightProgressContainer : styles.eveningProgressContainer
+              styles.eveningProgressContainer
             ]}>
               <View style={styles.progressRow}>
                 <View style={styles.progressItem}>
                   <Ionicons 
                     name="checkmark-circle" 
                     size={16} 
-                    color={timeCategory === 'night' ? '#10B981' : '#059669'} 
+                    color="#059669" 
                   />
                   <Text style={[
                     styles.progressText,
-                    { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+                    { color: '#64748b' }
                   ]}>
                     {completedGoals} voltooid
                   </Text>
@@ -282,11 +276,11 @@ export function EveningReflectionCTA({
                   <Ionicons 
                     name="list-outline" 
                     size={16} 
-                    color={timeCategory === 'night' ? '#F59E0B' : '#EA580C'} 
+                    color="#EA580C" 
                   />
                   <Text style={[
                     styles.progressText,
-                    { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+                    { color: '#64748b' }
                   ]}>
                     {totalGoals - completedGoals} te gaan
                   </Text>
@@ -294,7 +288,7 @@ export function EveningReflectionCTA({
               </View>
               <Text style={[
                 styles.progressPercentage,
-                { color: timeCategory === 'night' ? '#F8FAFC' : '#1e293b' }
+                { color: '#1e293b' }
               ]}>
                 {completionPercentage}% voltooid
               </Text>
@@ -306,15 +300,12 @@ export function EveningReflectionCTA({
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                timeCategory === 'night' ? styles.nightPrimaryButton : styles.eveningPrimaryButton
+                styles.eveningPrimaryButton
               ]}
               onPress={hasReflection ? handleViewReflection : handleStartReflection}
             >
               <LinearGradient
-                colors={timeCategory === 'night'
-                  ? ['#FCD34D', '#F59E0B']
-                  : ['#8B5CF6', '#A855F7']
-                }
+                colors={['#8B5CF6', '#A855F7']}
                 style={styles.primaryButtonGradient}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 1}}
@@ -336,20 +327,20 @@ export function EveningReflectionCTA({
             <TouchableOpacity
               style={[
                 styles.secondaryButton,
-                timeCategory === 'night' ? styles.nightSecondaryButton : styles.eveningSecondaryButton
+                styles.eveningSecondaryButton
               ]}
               onPress={handlePlanNextDay}
             >
               <Ionicons 
                 name="calendar-outline" 
                 size={18} 
-                color={timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6'} 
+                color="#8B5CF6" 
               />
               <Text style={[
                 styles.secondaryButtonText,
-                { color: timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6' }
+                { color: '#8B5CF6' }
               ]}>
-                {timeCategory === 'night' ? 'Plan vandaag' : 'Plan morgen'}
+                {currentTime.getHours() >= 0 && currentTime.getHours() < 6 ? 'Plan vandaag' : 'Plan morgen'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -632,14 +623,14 @@ const styles = StyleSheet.create({
   motivationContainer: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(71, 85, 105, 0.8)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
   },
   motivationText: {
     fontSize: 14,
-    color: '#CBD5E1',
+    color: '#64748b',
     textAlign: 'center',
     fontWeight: '500',
     lineHeight: 20,

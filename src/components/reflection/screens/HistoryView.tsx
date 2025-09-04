@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Card, CardContent } from '../../ui/Card';
 import { Reflection } from '../../../types';
 import { DataService } from '../../../lib/data-service';
@@ -16,12 +17,14 @@ interface HistoryViewProps {
   allReflections: Reflection[];
   selectedHistoryReflection: Reflection | null;
   onSelectReflection: (reflection: Reflection | null) => void;
+  onBackToStart?: () => void;
 }
 
 export function HistoryView({ 
   allReflections, 
   selectedHistoryReflection, 
-  onSelectReflection 
+  onSelectReflection,
+  onBackToStart
 }: HistoryViewProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -52,32 +55,80 @@ export function HistoryView({
 
   if (allReflections.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Alle reflecties</Text>
-          <Text style={styles.subtitle}>Bekijk al je reflecties en leer van je patronen</Text>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {onBackToStart && (
+          <View style={styles.backButtonContainer}>
+            <TouchableOpacity style={styles.backButton} onPress={onBackToStart}>
+              <Ionicons name="arrow-back" size={20} color="#667eea" />
+              <Text style={styles.backButtonText}>Terug naar reflectie</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {/* Modern Hero Header */}
+        <View style={styles.heroContainer}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroIconContainer}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.iconGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+              >
+                <Ionicons name="library-outline" size={24} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroTitle}>Alle reflecties</Text>
+              <Text style={styles.heroSubtitle}>Bekijk al je reflecties en leer van je patronen</Text>
+            </View>
+          </View>
         </View>
 
         <Card style={styles.emptyCard}>
           <CardContent style={styles.emptyContent}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="clipboard-outline" size={48} color="#9CA3AF" />
+              <Ionicons name="library-outline" size={48} color="#9CA3AF" />
             </View>
             <Text style={styles.emptyTitle}>Nog geen reflecties</Text>
             <Text style={styles.emptyText}>
-              Je hebt nog geen reflecties gemaakt.
+              Je hebt nog geen reflecties gemaakt. Begin met reflecteren om je voortgang bij te houden!
             </Text>
           </CardContent>
         </Card>
-      </View>
+      </ScrollView>
     );
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Alle reflecties</Text>
-        <Text style={styles.subtitle}>Bekijk al je reflecties en leer van je patronen</Text>
+      {onBackToStart && (
+        <View style={styles.backButtonContainer}>
+          <TouchableOpacity style={styles.backButton} onPress={onBackToStart}>
+            <Ionicons name="arrow-back" size={20} color="#667eea" />
+            <Text style={styles.backButtonText}>Terug naar reflectie</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {/* Modern Hero Header */}
+      <View style={styles.heroContainer}>
+        <View style={styles.heroHeader}>
+          <View style={styles.heroIconContainer}>
+            <LinearGradient
+              colors={['#667eea', '#764ba2']}
+              style={styles.iconGradient}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+            >
+              <Ionicons name="library-outline" size={24} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+          <View style={styles.heroTextContainer}>
+            <Text style={styles.heroTitle}>Alle reflecties</Text>
+            <Text style={styles.heroSubtitle}>Bekijk al je reflecties en leer van je patronen</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.reflectionsList}>
@@ -199,29 +250,85 @@ export function HistoryView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   content: {
-    padding: 16,
     paddingBottom: 32,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
+  backButtonContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 24,
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: 'rgba(99, 102, 241, 0.2)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#667eea',
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  
+  // Hero Section Styles
+  heroContainer: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: 'rgba(99, 102, 241, 0.2)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroIconContainer: {
+    marginRight: 16,
+  },
+  iconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTextContainer: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 16,
+  heroSubtitle: {
+    fontSize: 15,
     color: '#6B7280',
-    textAlign: 'center',
+    lineHeight: 20,
   },
+  
   emptyCard: {
-    marginTop: 40,
+    marginHorizontal: 16,
+    marginTop: 20,
   },
   emptyContent: {
     alignItems: 'center',
@@ -250,6 +357,7 @@ const styles = StyleSheet.create({
   },
   reflectionsList: {
     gap: 16,
+    paddingHorizontal: 16,
   },
   reflectionCard: {
     marginBottom: 0,

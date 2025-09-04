@@ -9,21 +9,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Goal, GoalReflection } from '../../../types';
+import { Goal, GoalReflection, MissedReason } from '../../../types';
+import { MISSED_REASON_LABELS } from '../../../lib/category-system';
 import { Card, CardContent } from '../../ui/Card';
-
-// Reason types for missed goals - exact match with original
-const MISSED_GOAL_REASONS = {
-  no_time: 'Geen tijd gehad',
-  forgot: 'Vergeten',
-  other_priorities: 'Andere prioriteiten',
-  too_difficult: 'Te moeilijk/uitdagend',
-  not_motivated: 'Niet gemotiveerd',
-  external_factors: 'Externe factoren',
-  other: 'Anders',
-} as const;
-
-type MissedGoalReason = keyof typeof MISSED_GOAL_REASONS;
 
 interface ReflectionWorkflowProps {
   today: string;
@@ -56,7 +44,7 @@ export function ReflectionWorkflow({
   onGeneralNotesChange,
 }: ReflectionWorkflowProps) {
   const [feedback, setFeedback] = useState('');
-  const [selectedReason, setSelectedReason] = useState<MissedGoalReason | null>(null);
+  const [selectedReason, setSelectedReason] = useState<MissedReason | null>(null);
   const [customReason, setCustomReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showOverallReflection, setShowOverallReflection] = useState(false);
@@ -110,7 +98,7 @@ export function ReflectionWorkflow({
     onGoalReflectionUpdate(currentGoal.id, updatedReflection);
   };
 
-  const handleReasonChange = (reasonType: MissedGoalReason, customText?: string) => {
+  const handleReasonChange = (reasonType: MissedReason, customText?: string) => {
     setSelectedReason(reasonType);
     if (reasonType === 'other') {
       setCustomReason(customText || '');
@@ -118,7 +106,7 @@ export function ReflectionWorkflow({
     
     if (!currentGoal) return;
 
-    const finalReason = reasonType === 'other' ? customText || '' : MISSED_GOAL_REASONS[reasonType];
+    const finalReason = reasonType === 'other' ? customText || '' : MISSED_REASON_LABELS[reasonType];
     const updatedReflection: GoalReflection = {
       goalId: currentGoal.id,
       completed: currentReflection?.completed || false,
@@ -138,7 +126,7 @@ export function ReflectionWorkflow({
       
       // Set reason state based on reflection
       if (nextReflection?.reason) {
-        const reasonKey = Object.entries(MISSED_GOAL_REASONS).find(([_, value]) => value === nextReflection.reason)?.[0] as MissedGoalReason;
+        const reasonKey = Object.entries(MISSED_REASON_LABELS).find(([_, value]) => value === nextReflection.reason)?.[0] as MissedReason;
         if (reasonKey) {
           setSelectedReason(reasonKey);
           if (reasonKey === 'other') {
@@ -169,7 +157,7 @@ export function ReflectionWorkflow({
       
       // Set reason state based on reflection
       if (prevReflection?.reason) {
-        const reasonKey = Object.entries(MISSED_GOAL_REASONS).find(([_, value]) => value === prevReflection.reason)?.[0] as MissedGoalReason;
+        const reasonKey = Object.entries(MISSED_REASON_LABELS).find(([_, value]) => value === prevReflection.reason)?.[0] as MissedReason;
         if (reasonKey) {
           setSelectedReason(reasonKey);
           if (reasonKey === 'other') {
@@ -514,10 +502,10 @@ export function ReflectionWorkflow({
             </Text>
             
             <View style={styles.reasonsContainer}>
-              {Object.entries(MISSED_GOAL_REASONS).map(([key, label]) => (
+              {Object.entries(MISSED_REASON_LABELS).map(([key, label]) => (
                 <TouchableOpacity
                   key={key}
-                  onPress={() => handleReasonChange(key as MissedGoalReason)}
+                  onPress={() => handleReasonChange(key as MissedReason)}
                   style={[
                     styles.reasonButton,
                     selectedReason === key && styles.reasonButtonActive

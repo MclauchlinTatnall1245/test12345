@@ -28,6 +28,7 @@ export function StartScreen({
   isCompleted = false,
   savedReflection
 }: StartScreenProps) {
+  const [showAllGoals, setShowAllGoals] = React.useState(false);
   // Format de datum voor weergave
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -75,6 +76,24 @@ export function StartScreen({
 
   const formattedDate = formatDate(today);
   const isToday = formattedDate.main === 'Vandaag';
+  
+  // Sort goals: completed first, then missed, then uncompleted/unfilled
+  const sortedGoals = [...todayGoals].sort((a, b) => {
+    // Helper function to get goal status priority
+    const getStatusPriority = (goal: Goal) => {
+      if (goal.completed) return 0; // Completed goals first
+      
+      // Check if goal is missed (either from goal.missed property or savedReflection.missedGoals)
+      const isMissedFromGoal = !!goal.missed;
+      const isMissedFromReflection = savedReflection?.missedGoals && goal.id && savedReflection.missedGoals[goal.id];
+      const isMissed = isMissedFromGoal || isMissedFromReflection;
+      
+      if (isMissed) return 1; // Missed goals second
+      return 2; // Unfilled/uncompleted goals last
+    };
+    
+    return getStatusPriority(a) - getStatusPriority(b);
+  });
   
   // Calculate stats for completed reflection
   const completedGoals = savedReflection ? 
@@ -208,27 +227,71 @@ export function StartScreen({
                   </Text>
                 </View>
               </View>
-              {todayGoals.slice(0, 3).map((goal, index) => (
-                <View key={index} style={styles.goalItem}>
-                  <View style={styles.goalIndicator}>
-                    <Ionicons 
-                      name={goal.completed ? "checkmark-circle" : "ellipse-outline"} 
-                      size={16} 
-                      color={goal.completed ? "#10B981" : "#6B7280"} 
-                    />
+              {(showAllGoals ? sortedGoals : sortedGoals.slice(0, 3)).map((goal, index) => {
+                // Determine goal status for display
+                const isCompleted = goal.completed;
+                const isMissedFromGoal = !!goal.missed; // Goal has missed property
+                const isMissedFromReflection = savedReflection?.missedGoals && goal.id && savedReflection.missedGoals[goal.id];
+                const isMissed = isMissedFromGoal || isMissedFromReflection;
+                const isUnfilled = !isCompleted && !isMissed;
+                
+                // Choose icon and color based on status
+                let iconName: string;
+                let iconColor: string;
+                let statusDebug = '';
+                
+                if (isCompleted) {
+                  iconName = "checkmark-circle";
+                  iconColor = "#10B981"; // Green
+                  statusDebug = '✅ Completed';
+                } else if (isMissed) {
+                  iconName = "close-circle";
+                  iconColor = "#EF4444"; // Red  
+                  statusDebug = '❌ Missed';
+                } else {
+                  iconName = "ellipse-outline";
+                  iconColor = "#6B7280"; // Gray
+                  statusDebug = '⭕ Unfilled';
+                }
+                
+                console.log(`Goal "${goal.title}": ${statusDebug}, completed: ${isCompleted}, missed: ${isMissed}, goalMissed: ${isMissedFromGoal}, reflectionMissed: ${!!isMissedFromReflection}`);
+                
+                return (
+                  <View key={index} style={styles.goalItem}>
+                    <View style={styles.goalIndicator}>
+                      <Ionicons 
+                        name={iconName as any} 
+                        size={16} 
+                        color={iconColor} 
+                      />
+                    </View>
+                    <View style={styles.goalContent}>
+                      <Text style={styles.goalTitle}>{goal.title}</Text>
+                      {goal.description && (
+                        <Text style={styles.goalDescription}>{goal.description}</Text>
+                      )}
+                    </View>
                   </View>
-                  <View style={styles.goalContent}>
-                    <Text style={styles.goalTitle}>{goal.title}</Text>
-                    {goal.description && (
-                      <Text style={styles.goalDescription}>{goal.description}</Text>
-                    )}
-                  </View>
-                </View>
-              ))}
+                );
+              })}
               {todayGoals.length > 3 && (
-                <Text style={styles.moreGoalsText}>
-                  +{todayGoals.length - 3} meer {todayGoals.length - 3 === 1 ? 'doel' : 'doelen'}...
-                </Text>
+                <TouchableOpacity 
+                  style={styles.toggleGoalsButton}
+                  onPress={() => setShowAllGoals(!showAllGoals)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={showAllGoals ? "chevron-up" : "chevron-down"} 
+                    size={16} 
+                    color="#667eea" 
+                  />
+                  <Text style={styles.toggleGoalsText}>
+                    {showAllGoals 
+                      ? 'Verberg doelen' 
+                      : `+${todayGoals.length - 3} meer ${todayGoals.length - 3 === 1 ? 'doel' : 'doelen'}...`
+                    }
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           )}
@@ -324,16 +387,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     marginTop: 12,
     marginBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#FFFFFF', // Volledige witte achtergrond voor meer contrast
     borderRadius: 20,
     padding: 18,
-    shadowColor: 'rgba(99, 102, 241, 0.2)',
+    shadowColor: 'rgba(99, 102, 241, 0.2)', // Zelfde subtiele schaduw als planning/today pagina
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
     shadowRadius: 16,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    elevation: 8, // Zelfde elevation als planning/today pagina
+    borderWidth: 2, // Dikkere border
+    borderColor: '#E2E8F0', // Zichtbare border kleur - slate-200
   },
   heroHeader: {
     flexDirection: 'row',
@@ -389,18 +452,18 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF', // Volledige witte achtergrond voor meer contrast
     borderRadius: 16,
-    padding: 10,
+    padding: 12, // Iets meer padding
     alignItems: 'center',
-    shadowColor: 'rgba(99, 102, 241, 0.15)',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: 'rgba(99, 102, 241, 0.25)', // Sterkere schaduw
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    minHeight: 65,
+    shadowRadius: 16,
+    elevation: 8, // Hogere elevation
+    borderWidth: 2, // Dikkere border
+    borderColor: '#E2E8F0', // Zichtbare border kleur - slate-200
+    minHeight: 70, // Iets hoger
     position: 'relative',
     overflow: 'hidden',
   },
@@ -457,14 +520,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     marginBottom: 32,
     borderRadius: 24,
-    shadowColor: 'rgba(99, 102, 241, 0.15)',
-    shadowOffset: { width: 0, height: 12 },
+    shadowColor: 'rgba(99, 102, 241, 0.25)', // Sterkere schaduw
+    shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 1,
-    shadowRadius: 24,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    shadowRadius: 32,
+    elevation: 16, // Hogere elevation
+    borderWidth: 2, // Dikkere border
+    borderColor: '#E2E8F0', // Zichtbare border kleur - slate-200
+    backgroundColor: '#FFFFFF', // Volledige witte achtergrond voor meer contrast
   },
   cardContent: {
     padding: 32,
@@ -511,17 +574,17 @@ const styles = StyleSheet.create({
   goalItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(248, 250, 252, 0.8)',
+    backgroundColor: '#F1F5F9', // Duidelijke achtergrondkleur - slate-100
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: 'rgba(99, 102, 241, 0.08)',
-    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 2, // Dikkere border
+    borderColor: '#E2E8F0', // Zichtbare border kleur - slate-200
+    shadowColor: 'rgba(99, 102, 241, 0.15)', // Sterkere schaduw
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 4, // Hogere elevation
   },
   goalIndicator: {
     marginRight: 12,
@@ -548,6 +611,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  toggleGoalsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  toggleGoalsText: {
+    fontSize: 14,
+    color: '#667eea',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 
   // Buttons
@@ -580,15 +662,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    backgroundColor: '#EEF2FF', // Duidelijke achtergrondkleur - indigo-50
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(102, 126, 234, 0.3)',
-    shadowColor: 'rgba(102, 126, 234, 0.2)',
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 2, // Dikkere border
+    borderColor: '#A5B4FC', // Zichtbare border kleur - indigo-300
+    shadowColor: 'rgba(102, 126, 234, 0.3)', // Sterkere schaduw
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 6, // Hogere elevation
   },
   secondaryButtonContent: {
     flexDirection: 'row',
@@ -610,11 +692,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 24,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(107, 114, 128, 0.1)',
+    backgroundColor: '#F1F5F9', // Duidelijke achtergrondkleur - slate-100
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(107, 114, 128, 0.2)',
+    borderWidth: 2, // Dikkere border
+    borderColor: '#CBD5E1', // Zichtbare border kleur - slate-300
     gap: 12,
+    shadowColor: 'rgba(99, 102, 241, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   noGoalsText: {
     fontSize: 16,
@@ -635,13 +722,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 16,
     gap: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    shadowColor: 'rgba(99, 102, 241, 0.1)',
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 2, // Dikkere border
+    borderColor: '#E2E8F0', // Zichtbare border kleur - slate-200
+    backgroundColor: '#FFFFFF', // Witte achtergrond voor meer contrast
+    shadowColor: 'rgba(99, 102, 241, 0.2)', // Sterkere schaduw
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 6, // Hogere elevation
   },
   tipText: {
     flex: 1,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +28,7 @@ export default function PlanningScreen() {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [showAddGoal, setShowAddGoal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const planningDate = DataService.getSmartPlanningDate();
 
@@ -48,6 +50,31 @@ export default function PlanningScreen() {
       setSuggestions(existingPlan.suggestions || []);
     }
   };
+
+  // Handmatige refresh functie voor pull-to-refresh
+  const handleManualRefresh = useCallback(async () => {
+    console.log('Manual refresh triggered on planning screen...');
+    setIsRefreshing(true);
+    
+    try {
+      // Herlaad de planning data
+      await loadPlan();
+      
+      // Korte delay voor betere UX (zodat gebruiker ziet dat er iets gebeurt)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log('Manual refresh completed successfully');
+    } catch (error) {
+      console.error('Error during manual refresh:', error);
+      Alert.alert(
+        'Refresh Fout',
+        'Er ging iets mis tijdens het verversen. Probeer het opnieuw.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [planningDate]);
 
   const handleGoalAdded = (newGoal: Goal) => {
     // Set the planning date for the goal
@@ -139,6 +166,17 @@ export default function PlanningScreen() {
         style={styles.scrollView} 
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleManualRefresh}
+            colors={['#667eea', '#764ba2']} // Android gradient colors
+            tintColor="#667eea" // iOS spinner color
+            title="Planning verversen..." // iOS text
+            titleColor="#6B7280" // iOS text color
+            progressBackgroundColor="#FFFFFF" // Android background
+          />
+        }
       >
         {/* Debug Panel */}
         <View style={styles.debugContainer}>
