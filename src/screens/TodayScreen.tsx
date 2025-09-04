@@ -251,7 +251,7 @@ export default function TodayScreen() {
           </View>
         </View>
 
-        {/* Evening Reflection CTA - Automatische versie keuze op basis van tijd */}
+        {/* Evening Reflection CTA - Prominente versie (bovenaan) */}
         <EveningReflectionCTA
           totalGoals={goals.length}
           completedGoals={completedGoals.length}
@@ -259,6 +259,7 @@ export default function TodayScreen() {
           onViewReflection={() => navigation.navigate('Reflection')}
           onPlanNextDay={() => navigation.navigate('Planning')}
           refreshTrigger={reflectionRefreshTrigger}
+          position="top"
         />
 
         {/* Futuristic View Toggle */}
@@ -499,6 +500,17 @@ export default function TodayScreen() {
             </CardContent>
           </Card>
         )}
+
+        {/* Evening Reflection CTA - Subtiele versie (onderaan) */}
+        <EveningReflectionCTA
+          totalGoals={goals.length}
+          completedGoals={completedGoals.length}
+          onStartReflection={() => navigation.navigate('Reflection')}
+          onViewReflection={() => navigation.navigate('Reflection')}
+          onPlanNextDay={() => navigation.navigate('Planning')}
+          refreshTrigger={reflectionRefreshTrigger}
+          position="bottom"
+        />
 
         {/* Bottom padding for tab bar */}
         <View style={styles.bottomPadding} />

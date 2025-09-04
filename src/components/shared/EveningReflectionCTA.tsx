@@ -19,6 +19,7 @@ interface EveningReflectionCTAProps {
   onViewReflection?: () => void;
   onPlanNextDay?: () => void;
   refreshTrigger?: number;
+  position?: 'top' | 'bottom'; // Nieuw: positie van de component
 }
 
 export function EveningReflectionCTA({ 
@@ -27,7 +28,8 @@ export function EveningReflectionCTA({
   onStartReflection,
   onViewReflection,
   onPlanNextDay,
-  refreshTrigger
+  refreshTrigger,
+  position = 'top'
 }: EveningReflectionCTAProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [hasReflection, setHasReflection] = useState<boolean>(false);
@@ -92,7 +94,11 @@ export function EveningReflectionCTA({
   const timeCategory = TimeService.getTimeCategory();
   
   // Bepaal of we de prominente (avond) of subtiele (overdag) versie moeten tonen
-  const showProminentVersion = isReflectionTime || isAlmostReflectionTime || timeCategory === 'evening' || timeCategory === 'night';
+  const isEarlyMorning = timeCategory === 'night' && currentTime.getHours() >= 0 && currentTime.getHours() < 6;
+  
+  // Als het early morning is (0-6), altijd subtiele versie tonen
+  // Anders normale logica: prominent als het avond/nacht is EN er geen reflectie is
+  const showProminentVersion = !isEarlyMorning && (isReflectionTime || isAlmostReflectionTime || timeCategory === 'evening' || timeCategory === 'night') && !hasReflection;
   
   const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
@@ -109,7 +115,12 @@ export function EveningReflectionCTA({
     
     const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
     
-    if (timeCategory === 'night') {
+    // Early morning (0-6): subtiele boodschap
+    const isEarlyMorning = timeCategory === 'night' && currentTime.getHours() >= 0 && currentTime.getHours() < 6;
+    
+    if (isEarlyMorning) {
+      return "De nieuwe dag is begonnen. Vanavond kun je weer reflecteren.";
+    } else if (timeCategory === 'night') {
       return `Het is al laat! Reflecteer op je dag (${completionPercentage}% voltooid) voordat je gaat slapen.`;
     } else if (timeCategory === 'evening') {
       return `Het wordt tijd om je dag af te sluiten. Je hebt ${completionPercentage}% van je doelen behaald.`;
@@ -160,6 +171,16 @@ export function EveningReflectionCTA({
 
   // Toon niet als er geen doelen zijn en het niet reflectie tijd is
   if (totalGoals === 0 && !showProminentVersion) {
+    return null;
+  }
+
+  // Als position 'bottom' is en we willen prominent tonen, return null (wordt later in bottom gerenderd)
+  if (position === 'bottom' && showProminentVersion) {
+    return null;
+  }
+
+  // Als position 'top' is en we willen subtiel tonen, return null (wordt later in bottom gerenderd)  
+  if (position === 'top' && !showProminentVersion) {
     return null;
   }
 
