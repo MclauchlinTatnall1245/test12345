@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Goal, MissedReason } from '../../types';
+import { GOAL_CATEGORY_LABELS, SUBCATEGORY_LABELS } from '../../lib/category-system';
 import { MissGoalModal } from './MissGoalModal';
 
 interface GoalItemProps {
@@ -36,20 +37,14 @@ const getCategoryColor = (category: string): string => {
 };
 
 // Helper function om category label te krijgen
-const getCategoryLabel = (category: string): string => {
-  const labels: Record<string, string> = {
-    health: 'Gezondheid',
-    productivity: 'Productiviteit',
-    household: 'Huishouden',
-    practical: 'Praktisch',
-    personal_development: 'Ontwikkeling',
-    entertainment: 'Entertainment',
-    social: 'Sociaal',
-    finance: 'Financiën',
-    shopping: 'Boodschappen',
-    other: 'Overig',
-  };
-  return labels[category] || labels.other;
+const getCategoryLabel = (category: string, subcategory?: string): string => {
+  // Als er een subcategorie is, toon die
+  if (subcategory && SUBCATEGORY_LABELS[subcategory]) {
+    return SUBCATEGORY_LABELS[subcategory];
+  }
+  
+  // Anders toon de hoofdcategorie
+  return GOAL_CATEGORY_LABELS[category as keyof typeof GOAL_CATEGORY_LABELS] || 'Overig';
 };
 
 export function GoalItem({ 
@@ -125,7 +120,7 @@ export function GoalItem({
         {/* Category Header Row */}
         <View style={styles.categoryRow}>
           <Text style={[styles.categoryText, { color: categoryColor }]}>
-            {getCategoryLabel(goal.category).toUpperCase()}
+            {getCategoryLabel(goal.category, goal.subcategory).toUpperCase()}
           </Text>
           <TouchableOpacity 
             style={styles.menuButton}
@@ -176,13 +171,20 @@ export function GoalItem({
             )}
 
             {goal.timeSlot && (
-              <Text style={[
-                styles.timeText,
-                isCompleted && styles.completedText,
-                isMissed && styles.missedText,
-              ]}>
-                {goal.timeSlot}
-              </Text>
+              <View style={styles.timeContainer}>
+                <Ionicons 
+                  name="time-outline" 
+                  size={14} 
+                  color={isCompleted || isMissed ? '#718096' : '#4A5568'} 
+                />
+                <Text style={[
+                  styles.timeText,
+                  isCompleted && styles.completedText,
+                  isMissed && styles.missedText,
+                ]}>
+                  {goal.timeSlot}
+                </Text>
+              </View>
             )}
 
             {isMissed && goal.missed && (
@@ -331,7 +333,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   completedTitle: {
-    textDecorationLine: 'line-through',
     color: '#4A5568', // Warmer grijs
   },
   missedTitle: {
@@ -352,7 +353,12 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
   },
 
-  // Time Text
+  // Time Container
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   timeText: {
     fontSize: 13,
     color: '#4A5568', // Warmer grijs

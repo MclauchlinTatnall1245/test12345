@@ -299,9 +299,12 @@ export default function TodayScreen() {
             {pendingGoals.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>
-                    Te doen ({pendingGoals.length})
-                  </Text>
+                  <View style={styles.sectionTitleContainer}>
+                    <Ionicons name="clipboard-outline" size={24} color="#1e293b" />
+                    <Text style={styles.sectionTitle}>
+                      Te doen ({pendingGoals.length})
+                    </Text>
+                  </View>
                   <TouchableOpacity 
                     style={styles.smallAddButton}
                     onPress={handleAddGoalPress}
@@ -326,9 +329,12 @@ export default function TodayScreen() {
             {pendingGoals.length === 0 && goals.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>
-                    Te doen (0)
-                  </Text>
+                  <View style={styles.sectionTitleContainer}>
+                    <Ionicons name="clipboard-outline" size={24} color="#1e293b" />
+                    <Text style={styles.sectionTitle}>
+                      Te doen (0)
+                    </Text>
+                  </View>
                   <TouchableOpacity 
                     style={styles.smallAddButton}
                     onPress={handleAddGoalPress}
@@ -336,18 +342,24 @@ export default function TodayScreen() {
                     <Ionicons name="add" size={26} color="#667eea" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.emptySection}>
-                  Alle doelen zijn voltooid!
-                </Text>
+                <View style={styles.emptySection}>
+                  <Ionicons name="trophy-outline" size={20} color="#10B981" />
+                  <Text style={styles.emptySectionText}>
+                    Alle doelen zijn voltooid!
+                  </Text>
+                </View>
               </View>
             )}
 
             {completedGoals.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeaderCompact}>
-                  <Text style={styles.sectionTitle}>
-                    Voltooid ({completedGoals.length})
-                  </Text>
+                  <View style={styles.sectionTitleContainer}>
+                    <Ionicons name="checkmark-done-outline" size={24} color="#1e293b" />
+                    <Text style={styles.sectionTitle}>
+                      Voltooid ({completedGoals.length})
+                    </Text>
+                  </View>
                 </View>
                 {completedGoals.map(goal => (
                   <GoalItem
@@ -365,9 +377,12 @@ export default function TodayScreen() {
             {missedGoals.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeaderCompact}>
-                  <Text style={styles.sectionTitle}>
-                    Gemist ({missedGoals.length})
-                  </Text>
+                  <View style={styles.sectionTitleContainer}>
+                    <Ionicons name="close-circle-outline" size={24} color="#1e293b" />
+                    <Text style={styles.sectionTitle}>
+                      Gemist ({missedGoals.length})
+                    </Text>
+                  </View>
                 </View>
                 {missedGoals.map(goal => (
                   <GoalItem
@@ -738,6 +753,11 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     paddingHorizontal: 4,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
     fontSize: 26,
     fontWeight: '800',
@@ -760,16 +780,22 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   emptySection: {
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '500',
-    textAlign: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 24,
     paddingHorizontal: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.8)',
+    gap: 8,
+  },
+  emptySectionText: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 
   // Elegant Reflection Container
