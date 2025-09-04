@@ -95,28 +95,33 @@ export function GoalItem({
     <View style={[
       styles.goalContainer,
     ]}>
-      {/* Modern Goal Card */}
-      <View style={[
-        styles.goalCard,
-        isCompleted && {
-          backgroundColor: '#F0FDF4', // Licht groene achtergrond
-          borderColor: '#BBF7D0', // Groene border
-          shadowColor: '#10B981', // Groene gloed
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          elevation: 4,
-        },
-        isMissed && {
-          backgroundColor: '#FEF2F2', // Licht rode achtergrond
-          borderColor: '#FECACA', // Rode border
-          shadowColor: '#EF4444', // Rode gloed
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          elevation: 4,
-        }
-      ]}>
+      {/* Modern Goal Card - Hele card is nu klikbaar */}
+      <TouchableOpacity 
+        style={[
+          styles.goalCard,
+          isCompleted && {
+            backgroundColor: '#F0FDF4', // Licht groene achtergrond
+            borderColor: '#BBF7D0', // Groene border
+            shadowColor: '#10B981', // Groene gloed
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 4,
+          },
+          isMissed && {
+            backgroundColor: '#FEF2F2', // Licht rode achtergrond
+            borderColor: '#FECACA', // Rode border
+            shadowColor: '#EF4444', // Rode gloed
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 4,
+          }
+        ]}
+        onPress={() => !isMissed && onToggleComplete(goal.id)}
+        disabled={isMissed}
+        activeOpacity={0.7}
+      >
         {/* Category Header Row */}
         <View style={styles.categoryRow}>
           <Text style={[styles.categoryText, { color: categoryColor }]}>
@@ -124,7 +129,10 @@ export function GoalItem({
           </Text>
           <TouchableOpacity 
             style={styles.menuButton}
-            onPress={() => setShowMenu(!showMenu)}
+            onPress={(e) => {
+              e.stopPropagation(); // Voorkom dat de card toggle wordt getriggerd
+              setShowMenu(!showMenu);
+            }}
           >
             <Ionicons name="ellipsis-horizontal" size={18} color="#64748B" />
           </TouchableOpacity>
@@ -132,15 +140,13 @@ export function GoalItem({
 
         {/* Main Content */}
         <View style={styles.contentRow}>
-          {/* Checkbox */}
-          <TouchableOpacity 
+          {/* Checkbox - Nu alleen visueel, geen onPress meer */}
+          <View 
             style={[
               styles.checkbox,
               isCompleted && styles.checkedBox,
               isMissed && styles.missedBox,
             ]}
-            onPress={() => !isMissed && onToggleComplete(goal.id)}
-            disabled={isMissed}
           >
             {isCompleted && (
               <Ionicons name="checkmark" size={14} color="#FFFFFF" />
@@ -148,7 +154,7 @@ export function GoalItem({
             {isMissed && (
               <Ionicons name="close" size={14} color="#FFFFFF" />
             )}
-          </TouchableOpacity>
+          </View>
 
           {/* Content Section */}
           <View style={styles.contentSection}>
@@ -203,7 +209,10 @@ export function GoalItem({
           <View style={styles.actionMenu}>
             <TouchableOpacity 
               style={styles.menuItem}
-              onPress={handleEdit}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEdit();
+              }}
             >
               <Ionicons name="pencil" size={16} color="#3B82F6" />
               <Text style={[styles.menuItemText, { color: '#3B82F6' }]}>
@@ -214,7 +223,10 @@ export function GoalItem({
             {!isCompleted && !isMissed && (
               <TouchableOpacity 
                 style={styles.menuItem}
-                onPress={handleMarkAsMissed}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsMissed();
+                }}
               >
                 <Ionicons name="close-circle" size={16} color="#EF4444" />
                 <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
@@ -225,7 +237,10 @@ export function GoalItem({
 
             <TouchableOpacity 
               style={styles.menuItem}
-              onPress={handleDelete}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
             >
               <Ionicons name="trash" size={16} color="#EF4444" />
               <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
@@ -234,7 +249,7 @@ export function GoalItem({
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       <MissGoalModal
         visible={showMissModal}

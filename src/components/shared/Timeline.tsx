@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Goal, MissedReason, GoalCategory } from '../../types';
-import { CategorySystemHelper } from '../../lib/category-system';
-import { EditGoalForm } from './EditGoalForm';
-import { MissGoalModal } from './MissGoalModal';
-import { Card } from '../ui/Card';
+import { Goal, MissedReason } from '../../types';
+import { GoalItem } from './GoalItem';
 
 interface TimelineProps {
   goals: Goal[];
@@ -23,70 +18,23 @@ interface TimelineProps {
   showEmptySlots?: boolean;
 }
 
-interface TimeSlot {
-  time: string;
-  hour: number;
-  minute: number;
-  goals: Goal[];
-  status: 'upcoming' | 'current' | 'passed' | 'completed' | 'missed';
-}
-
 export function Timeline({ 
   goals, 
   onToggleGoal, 
   onEditGoal, 
   onMissGoal, 
-  onDeleteGoal, 
-  targetDate, 
-  showEmptySlots = true 
+  onDeleteGoal
 }: TimelineProps) {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [missGoalId, setMissGoalId] = useState<string | null>(null);
 
-  const getCategoryLabel = (category: string) => {
-    return CategorySystemHelper.getCategoryLabel(category as GoalCategory) || 'Anders';
-  };
-
-  const getCategoryColor = (category: GoalCategory) => {
-    const colorMap: { [key in GoalCategory]: string } = {
-      health: '#10B981',
-      productivity: '#3B82F6',
-      household: '#F59E0B',
-      practical: '#F97316',
-      personal_development: '#8B5CF6',
-      entertainment: '#EC4899',
-      social: '#EF4444',
-      finance: '#6366F1',
-      shopping: '#06B6D4',
-      other: '#6B7280'
-    };
-    return colorMap[category] || '#6B7280';
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update elke minuut
-
-    return () => clearInterval(timer);
-  }, []);
-
-  // Check of target date vandaag is
-  const today = new Date().toISOString().split('T')[0];
-  const isToday = targetDate === today;
-  const isFuture = targetDate > today;
-  const isPast = targetDate < today;
-
-  // Parse tijd string naar uren en minuten (zoals origineel)
-  const parseTime = (timeStr: string): { hour: number; minute: number; originalTime: string } | null => {
+  // Parse tijd string naar uren en minuten
+  const parseTime = (timeStr: string): { hour: number; minute: number } | null => {
     // "Voor 09:00" -> 09:00
     if (timeStr.toLowerCase().includes('voor')) {
       const match = timeStr.match(/(\d{1,2}):?(\d{2})?/);
       if (match) {
         return {
           hour: parseInt(match[1]),
-          minute: parseInt(match[2] || '0'),
-          originalTime: `${match[1].padStart(2, '0')}:${(match[2] || '00').padStart(2, '0')}`
+          minute: parseInt(match[2] || '0')
         };
       }
     }
@@ -98,8 +46,7 @@ export function Timeline({
       if (match) {
         return {
           hour: parseInt(match[1]),
-          minute: parseInt(match[2]),
-          originalTime: timeStr
+          minute: parseInt(match[2])
         };
       }
     }
@@ -109,22 +56,18 @@ export function Timeline({
     if (match) {
       return {
         hour: parseInt(match[1]),
-        minute: parseInt(match[2]),
-        originalTime: timeStr
+        minute: parseInt(match[2])
       };
     }
     
     return null;
   };
 
-  // Maak tijdslots - ALLEEN voor tijden met goals (zoals origineel)
-  const createTimeSlots = (): TimeSlot[] => {
-    const slots: TimeSlot[] = [];
+  // Groepeer doelen per tijdslot
+  const groupGoalsByTime = () => {
     const timedGoals = goals.filter(goal => goal.timeSlot);
-    const currentHour = currentTime.getHours();
-    const currentMinute = currentTime.getMinutes();
-
-    // Groepeer doelen per tijdslot
+    const untimedGoals = goals.filter(goal => !goal.timeSlot);
+    
     const goalsByTime = new Map<string, Goal[]>();
     
     timedGoals.forEach(goal => {
@@ -140,372 +83,87 @@ export function Timeline({
       }
     });
 
-    // Voeg context slots toe (zoals origineel)
-    const timePoints = new Set<string>();
-    goalsByTime.forEach((_, timeKey) => {
-      timePoints.add(timeKey);
-    });
-
-    if (showEmptySlots && goalsByTime.size > 0) {
-      const existingTimes = Array.from(goalsByTime.keys()).sort();
-      const firstTime = existingTimes[0];
-      const lastTime = existingTimes[existingTimes.length - 1];
-      
-      // Voeg een tijdslot toe voor en na de eerste/laatste geplande tijd
-      const [firstHour, firstMin] = firstTime.split(':').map(Number);
-      const [lastHour, lastMin] = lastTime.split(':').map(Number);
-      
-      if (firstHour > 6) {
-        timePoints.add(`${(firstHour - 1).toString().padStart(2, '0')}:${firstMin.toString().padStart(2, '0')}`);
-      }
-      
-      if (lastHour < 23) {
-        timePoints.add(`${(lastHour + 1).toString().padStart(2, '0')}:${lastMin.toString().padStart(2, '0')}`);
-      }
-    }
-
-    // Converteer naar slots en sorteer
-    Array.from(timePoints).sort().forEach(timeKey => {
-      const [hourStr, minuteStr] = timeKey.split(':');
-      const hour = parseInt(hourStr);
-      const minute = parseInt(minuteStr);
-      const slotGoals = goalsByTime.get(timeKey) || [];
-      
-      // Bepaal status (zoals origineel)
-      let status: TimeSlot['status'] = 'upcoming';
-      
-      if (!isToday) {
-        // Voor toekomstige/verleden dagen: kijk alleen naar completed status
-        if (slotGoals.length === 0) {
-          status = 'upcoming';
-        } else {
-          status = slotGoals.every(g => g.completed) ? 'completed' : 'upcoming';
-        }
-      } else {
-        // Voor vandaag: gebruik tijd logica
-        const slotTotalMinutes = hour * 60 + minute;
-        const currentTotalMinutes = currentHour * 60 + currentMinute;
-        
-        if (slotTotalMinutes > currentTotalMinutes + 15) {
-          status = 'upcoming';
-        } else if (slotTotalMinutes >= currentTotalMinutes - 15 && slotTotalMinutes <= currentTotalMinutes + 15) {
-          status = 'current';
-        } else {
-          // In het verleden
-          if (slotGoals.length === 0) {
-            status = 'passed';
-          } else {
-            status = slotGoals.every(g => g.completed) ? 'completed' : 'missed';
-          }
-        }
-      }
-      
-      slots.push({
-        time: timeKey,
-        hour,
-        minute,
-        goals: slotGoals,
-        status
-      });
-    });
+    // Sorteer tijdslots
+    const sortedTimes = Array.from(goalsByTime.keys()).sort();
     
-    return slots;
+    return { sortedTimes, goalsByTime, untimedGoals };
   };
 
-  // Goals zonder specifiek tijdslot
-  const unscheduledGoals = goals.filter(goal => !goal.timeSlot);
-  const timeSlots = createTimeSlots();
-
-  const handleMissGoal = (reason: MissedReason, notes?: string) => {
-    if (!missGoalId || !onMissGoal) return;
-    
-    if (reason === 'wrong_goal') {
-      // Verwijder het doel volledig
-      onDeleteGoal?.(missGoalId);
-    } else {
-      // Markeer als gemist
-      onMissGoal(missGoalId, reason, notes);
-    }
-    
-    setMissGoalId(null);
-  };
-
-  const getStatusIcon = (status: TimeSlot['status']) => {
-    switch (status) {
-      case 'completed':
-        return <Ionicons name="checkmark-circle" size={20} color="#10B981" />;
-      case 'current':
-        return <Ionicons name="time" size={20} color="#F59E0B" />;
-      case 'missed':
-        return <Ionicons name="close-circle" size={20} color="#EF4444" />;
-      case 'passed':
-        return <Ionicons name="remove-circle" size={20} color="#9CA3AF" />;
-      default:
-        return <Ionicons name="ellipse-outline" size={20} color="#D1D5DB" />;
-    }
-  };
-
-  const getStatusColor = (status: TimeSlot['status']) => {
-    switch (status) {
-      case 'completed':
-        return '#F0FDF4';
-      case 'current':
-        return '#FFFBEB';
-      case 'missed':
-        return '#FEF2F2';
-      case 'passed':
-        return '#F9FAFB';
-      default:
-        return '#FFFFFF';
-    }
-  };
-
-  const getDateLabel = () => {
-    if (isToday) return 'Vandaag';
-    if (isFuture) return 'Toekomst';
-    if (isPast) return 'Verleden';
-    return '';
-  };
+  const { sortedTimes, goalsByTime, untimedGoals } = groupGoalsByTime();
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header met datum info (zoals origineel) */}
-      <Card style={styles.headerCard}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>
-              📅 Dagplanning - {getDateLabel()}
-            </Text>
-            <Text style={styles.headerDate}>
-              {new Date(targetDate).toLocaleDateString('nl-NL', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </Text>
-          </View>
-          
-          {isToday && (
-            <View style={styles.currentTimeContainer}>
-              <Text style={styles.currentTimeLabel}>Huidige tijd</Text>
-              <Text style={styles.currentTimeValue}>
-                {currentTime.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+    <View style={styles.container}>
+      {/* Doelen met tijdslots */}
+      {sortedTimes.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="time-outline" size={24} color="#1e293b" />
+              <Text style={styles.sectionTitle}>
+                Geplande doelen
               </Text>
             </View>
-          )}
-        </View>
-      </Card>
-
-      {/* Timeline - Alleen tijden met doelen */}
-      <View style={styles.timeline}>
-        {timeSlots.length === 0 ? (
-          <Card style={styles.emptyTimelineCard}>
-            <View style={styles.emptyTimelineContent}>
-              <Ionicons name="time-outline" size={48} color="#9CA3AF" />
-              <Text style={styles.emptyTimelineTitle}>Geen tijdslots met doelen</Text>
-              <Text style={styles.emptyTimelineMessage}>Doelen zonder tijdslot staan hieronder</Text>
-            </View>
-          </Card>
-        ) : (
-          timeSlots.map((slot) => {
-            const hasGoals = slot.goals.length > 0;
-            
-            // Alleen slots met doelen tonen, tenzij het een context slot is
-            if (!hasGoals && slot.status === 'passed') return null;
-            
-            return (
-              <View key={slot.time} style={styles.timeSlot}>
-                <View style={styles.timeColumn}>
-                  <Text style={styles.timeText}>{slot.time}</Text>
-                  {getStatusIcon(slot.status)}
-                </View>
-                
-                <View style={styles.contentColumn}>
-                  <View style={[styles.slotContent, { backgroundColor: getStatusColor(slot.status) }]}>
-                    {slot.goals.length === 0 ? (
-                      showEmptySlots && (
-                        <Text style={styles.emptySlotText}>Vrije tijd</Text>
-                      )
-                    ) : (
-                      <View style={styles.goalsContainer}>
-                        {slot.goals.map((goal) => (
-                          <View key={goal.id}>
-                            {missGoalId === goal.id ? (
-                              <MissGoalModal
-                                visible={true}
-                                goalTitle={goal.title}
-                                onConfirm={handleMissGoal}
-                                onCancel={() => setMissGoalId(null)}
-                              />
-                            ) : (
-                              <View style={styles.goalItem}>
-                                <TouchableOpacity
-                                  style={styles.goalHeader}
-                                  onPress={() => onToggleGoal?.(goal.id)}
-                                >
-                                  <View style={[
-                                    styles.checkbox,
-                                    goal.completed && styles.checkboxCompleted,
-                                    goal.missed && styles.checkboxMissed
-                                  ]}>
-                                    {goal.completed && (
-                                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                                    )}
-                                    {goal.missed && (
-                                      <Ionicons name="close" size={12} color="#FFFFFF" />
-                                    )}
-                                  </View>
-                                  
-                                  <View style={styles.goalContent}>
-                                    <Text style={[
-                                      styles.goalTitle,
-                                      goal.completed && styles.goalTitleCompleted,
-                                      goal.missed && styles.goalTitleMissed
-                                    ]}>
-                                      {goal.title}
-                                    </Text>
-                                    
-                                    {goal.description && (
-                                      <Text style={styles.goalDescription}>
-                                        {goal.description}
-                                      </Text>
-                                    )}
-                                    
-                                    <View style={styles.goalMeta}>
-                                      <View style={[
-                                        styles.categoryBadge,
-                                        { backgroundColor: getCategoryColor(goal.category) + '20' }
-                                      ]}>
-                                        <Text style={[
-                                          styles.categoryText,
-                                          { color: getCategoryColor(goal.category) }
-                                        ]}>
-                                          {getCategoryLabel(goal.category)}
-                                        </Text>
-                                      </View>
-                                      <Text style={styles.timeSlotText}>
-                                        {goal.timeSlot}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                </TouchableOpacity>
-                                
-                                {!goal.completed && !goal.missed && (
-                                  <View style={styles.goalActions}>
-                                    <TouchableOpacity
-                                      style={styles.actionButton}
-                                      onPress={() => onEditGoal?.(goal)}
-                                    >
-                                      <Ionicons name="pencil" size={16} color="#6B7280" />
-                                    </TouchableOpacity>
-                                    
-                                    {isToday && (
-                                      <TouchableOpacity
-                                        style={styles.actionButton}
-                                        onPress={() => setMissGoalId(goal.id)}
-                                      >
-                                        <Ionicons name="close" size={16} color="#EF4444" />
-                                      </TouchableOpacity>
-                                    )}
-                                  </View>
-                                )}
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </View>
-      
-      {/* Unscheduled Goals */}
-      {unscheduledGoals.length > 0 && (
-        <Card style={styles.unscheduledSection}>
-          <View style={styles.unscheduledHeader}>
-            <Ionicons name="list" size={20} color="#6B7280" />
-            <Text style={styles.unscheduledTitle}>Doelen zonder specifieke tijd ({unscheduledGoals.length})</Text>
           </View>
           
-          <View style={styles.unscheduledGoals}>
-            {unscheduledGoals.map((goal) => (
-              <View key={goal.id} style={styles.unscheduledGoal}>
-                <TouchableOpacity
-                  style={styles.goalHeader}
-                  onPress={() => onToggleGoal?.(goal.id)}
-                >
-                  <View style={[
-                    styles.checkbox,
-                    goal.completed && styles.checkboxCompleted,
-                    goal.missed && styles.checkboxMissed
-                  ]}>
-                    {goal.completed && (
-                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                    )}
-                    {goal.missed && (
-                      <Ionicons name="close" size={12} color="#FFFFFF" />
-                    )}
-                  </View>
-                  
-                  <View style={styles.goalContent}>
-                    <Text style={[
-                      styles.goalTitle,
-                      goal.completed && styles.goalTitleCompleted,
-                      goal.missed && styles.goalTitleMissed
-                    ]}>
-                      {goal.title}
-                    </Text>
-                    
-                    {goal.description && (
-                      <Text style={styles.goalDescription}>
-                        {goal.description}
-                      </Text>
-                    )}
-                    
-                    <View style={styles.goalMeta}>
-                      <View style={[
-                        styles.categoryBadge,
-                        { backgroundColor: getCategoryColor(goal.category) + '20' }
-                      ]}>
-                        <Text style={[
-                          styles.categoryText,
-                          { color: getCategoryColor(goal.category) }
-                        ]}>
-                          {getCategoryLabel(goal.category)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-                
-                {!goal.completed && !goal.missed && (
-                  <View style={styles.goalActions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => onEditGoal?.(goal)}
-                    >
-                      <Ionicons name="pencil" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => setMissGoalId(goal.id)}
-                    >
-                      <Ionicons name="close" size={16} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                )}
+          {sortedTimes.map(timeSlot => {
+            const timeGoals = goalsByTime.get(timeSlot) || [];
+            return (
+              <View key={timeSlot} style={styles.timeSlotSection}>
+                <View style={styles.timeHeader}>
+                  <Text style={styles.timeLabel}>{timeSlot}</Text>
+                </View>
+                {timeGoals.map(goal => (
+                  <GoalItem
+                    key={goal.id}
+                    goal={goal}
+                    onToggleComplete={onToggleGoal ? (goalId: string) => onToggleGoal(goalId) : undefined}
+                    onEdit={onEditGoal ? (goal: Goal) => onEditGoal(goal) : undefined}
+                    onDelete={onDeleteGoal ? (goalId: string) => onDeleteGoal(goalId) : undefined}
+                    onMarkAsMissed={onMissGoal ? (goalId: string, reason: MissedReason, notes?: string) => onMissGoal(goalId, reason, notes) : undefined}
+                  />
+                ))}
               </View>
-            ))}
-          </View>
-        </Card>
+            );
+          })}
+        </View>
       )}
-    </ScrollView>
+
+      {/* Doelen zonder tijdslot */}
+      {untimedGoals.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="list-outline" size={24} color="#1e293b" />
+              <Text style={styles.sectionTitle}>
+                Ongeplande doelen ({untimedGoals.length})
+              </Text>
+            </View>
+          </View>
+          
+          {untimedGoals.map(goal => (
+            <GoalItem
+              key={goal.id}
+              goal={goal}
+              onToggleComplete={onToggleGoal ? (goalId: string) => onToggleGoal(goalId) : undefined}
+              onEdit={onEditGoal ? (goal: Goal) => onEditGoal(goal) : undefined}
+              onDelete={onDeleteGoal ? (goalId: string) => onDeleteGoal(goalId) : undefined}
+              onMarkAsMissed={onMissGoal ? (goalId: string, reason: MissedReason, notes?: string) => onMissGoal(goalId, reason, notes) : undefined}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Empty state */}
+      {goals.length === 0 && (
+        <View style={styles.emptyState}>
+          <Ionicons name="time-outline" size={64} color="#9CA3AF" />
+          <Text style={styles.emptyTitle}>Geen doelen gepland</Text>
+          <Text style={styles.emptyMessage}>
+            Er zijn geen doelen gepland voor deze dag
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -513,202 +171,63 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerCard: {
-    marginBottom: 16,
-    backgroundColor: '#F0F9FF',
-    borderColor: '#3B82F6',
+  section: {
+    marginHorizontal: 24,
+    marginBottom: 40,
   },
-  headerContent: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    marginBottom: 24,
+    paddingHorizontal: 4,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  headerDate: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  currentTimeContainer: {
-    alignItems: 'flex-end',
-  },
-  currentTimeLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
-  currentTimeValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#3B82F6',
-  },
-  emptyTimelineCard: {
-    marginVertical: 32,
-  },
-  emptyTimelineContent: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyTimelineTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  emptyTimelineMessage: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  timeline: {
-    paddingVertical: 16,
-  },
-  timeSlot: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    minHeight: 60,
-  },
-  timeColumn: {
-    width: 80,
-    alignItems: 'center',
-    paddingTop: 8,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  contentColumn: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  slotContent: {
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    minHeight: 50,
-    padding: 16,
-  },
-  emptySlotText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
-  goalsContainer: {
-    gap: 8,
-  },
-  goalItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 6,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  checkboxCompleted: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
-  },
-  checkboxMissed: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
-  },
-  goalContent: {
-    flex: 1,
-  },
-  goalTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  goalTitleCompleted: {
-    textDecorationLine: 'line-through',
-    color: '#6B7280',
-  },
-  goalTitleMissed: {
-    color: '#EF4444',
-  },
-  goalDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  goalMeta: {
+  sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  sectionTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#1e293b',
+    letterSpacing: -0.5,
+  },
+  timeSlotSection: {
+    marginBottom: 24,
+  },
+  timeHeader: {
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
     borderRadius: 12,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  timeSlotText: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  goalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  unscheduledSection: {
-    margin: 16,
-    marginTop: 8,
-  },
-  unscheduledHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     marginBottom: 12,
+    alignSelf: 'flex-start',
   },
-  unscheduledTitle: {
+  timeLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#667eea',
+    letterSpacing: 0.5,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    marginHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginTop: 24,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  emptyMessage: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-    marginLeft: 8,
-  },
-  unscheduledGoals: {
-    gap: 8,
-  },
-  unscheduledGoal: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

@@ -5,32 +5,44 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../ui/Card';
-import Button from '../ui/Button';
 import TimeService from '../../lib/time-service';
+import { DataService } from '../../lib/data-service';
 
 interface EveningReflectionCTAProps {
   totalGoals: number;
   completedGoals: number;
-  forceSubtleMode?: boolean; // Forceer de component om zich overdag te gedragen
   onStartReflection?: () => void;
   onViewReflection?: () => void;
   onPlanNextDay?: () => void;
+  refreshTrigger?: number;
 }
 
 export function EveningReflectionCTA({ 
   totalGoals, 
   completedGoals, 
-  forceSubtleMode = false,
   onStartReflection,
   onViewReflection,
-  onPlanNextDay
+  onPlanNextDay,
+  refreshTrigger
 }: EveningReflectionCTAProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [hasReflection, setHasReflection] = useState<boolean>(false);
+
+  // Functie om reflectie status te checken
+  const checkReflection = async () => {
+    try {
+      const today = TimeService.getCurrentDate();
+      const reflection = await DataService.getReflection(today);
+      setHasReflection(!!reflection);
+    } catch (error) {
+      console.log('Error checking reflection:', error);
+      setHasReflection(false);
+    }
+  };
 
   useEffect(() => {
     // Update tijd elke minuut
@@ -38,94 +50,40 @@ export function EveningReflectionCTA({
       setCurrentTime(new Date());
     }, 60000);
 
-    // TODO: Check of er al een reflectie is voor vandaag
-    // Dit kan later geïmplementeerd worden met AsyncStorage
-    setHasReflection(false);
+    // Check reflectie status bij component mount
+    checkReflection();
 
     return () => clearInterval(interval);
   }, [totalGoals, completedGoals]);
 
-  // Gebruik TimeService voor alle tijd-logica (zoals origineel)
-  const isReflectionTime = () => {
-    return !forceSubtleMode && TimeService.isReflectionTime();
-  };
+  // Effect om reflectie status te vernieuwen als refreshTrigger verandert
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      checkReflection();
+    }
+  }, [refreshTrigger]);
 
-  const isAlmostReflectionTime = () => {
-    return !forceSubtleMode && TimeService.isAlmostReflectionTime();
-  };
-
+  const isReflectionTime = TimeService.isReflectionTime();
+  const isAlmostReflectionTime = TimeService.isAlmostReflectionTime();
   const timeCategory = TimeService.getTimeCategory();
-  const isReflectionTimeNow = isReflectionTime();
-  const isAlmostReflectionTimeNow = isAlmostReflectionTime();
   
-  // Bepaal urgentie levels op basis van tijd en forceSubtleMode
-  const isVeryLate = !forceSubtleMode && timeCategory === 'night';
-  const isLateNight = !forceSubtleMode && (timeCategory === 'night' || timeCategory === 'evening');
-
-  // Bepaal de stijl en grootte van de CTA
-  const getCTAStyle = () => {
-    if (isVeryLate) {
-      return {
-        size: 'prominent',
-        variant: 'primary',
-        urgent: true
-      };
-    } else if (isLateNight) {
-      return {
-        size: 'large',
-        variant: 'primary',
-        urgent: true
-      };
-    } else if (isReflectionTimeNow) {
-      return {
-        size: 'large',
-        variant: 'primary',
-        urgent: false
-      };
-    } else if (isAlmostReflectionTimeNow) {
-      return {
-        size: 'default',
-        variant: 'secondary',
-        urgent: false
-      };
-    } else {
-      return {
-        size: 'small',
-        variant: 'secondary',
-        urgent: false
-      };
-    }
-  };
-
-  const style = getCTAStyle();
-
-  // Toon component alleen als er doelen zijn of als het reflectie tijd is
-  if (totalGoals === 0 && !isReflectionTimeNow && !isAlmostReflectionTimeNow && !forceSubtleMode) {
-    return null;
-  }
-
-  const getPlanningButtonText = () => {
-    if (isVeryLate) {
-      return 'Plan vandaag';
-    } else {
-      return 'Plan morgen';
-    }
-  };
+  // Bepaal of we de prominente (avond) of subtiele (overdag) versie moeten tonen
+  const showProminentVersion = isReflectionTime || isAlmostReflectionTime || timeCategory === 'evening' || timeCategory === 'night';
+  
+  const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
   const getTimeMessage = () => {
-    const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
-    
     if (hasReflection) {
-      return `Je hebt al gereflecteerd op vandaag (${completionPercentage}% voltooid). Je kunt je reflectie bekijken of bewerken.`;
+      return `Je hebt al gereflecteerd op vandaag (${completionPercentage}% voltooid).`;
     }
     
-    if (isVeryLate) {
+    if (timeCategory === 'night') {
       return `Het is al laat! Reflecteer op je dag (${completionPercentage}% voltooid) voordat je gaat slapen.`;
-    } else if (isLateNight) {
+    } else if (timeCategory === 'evening') {
       return `Het wordt tijd om je dag af te sluiten. Je hebt ${completionPercentage}% van je doelen behaald.`;
-    } else if (isReflectionTimeNow) {
+    } else if (isReflectionTime) {
       return `De avond is begonnen - reflecteer op je dag met ${completionPercentage}% voltooiing.`;
-    } else if (isAlmostReflectionTimeNow) {
+    } else if (isAlmostReflectionTime) {
       return `De avond komt eraan - bereid je voor op reflectie (${completionPercentage}% voltooid).`;
     } else {
       return "Later vandaag kun je reflecteren op je dag.";
@@ -168,190 +126,264 @@ export function EveningReflectionCTA({
     }
   };
 
-  // Kleine discrete versie voor overdag
-  if (!isReflectionTimeNow && !isAlmostReflectionTimeNow) {
+  // Toon niet als er geen doelen zijn en het niet reflectie tijd is
+  if (totalGoals === 0 && !showProminentVersion) {
+    return null;
+  }
+
+  // SUBTIELE VERSIE - Overdag (minder zichtbaar, onderaan)
+  if (!showProminentVersion) {
     return (
-      <Card style={styles.subtleCard}>
-        <View style={styles.subtleContent}>
-          <View style={styles.subtleLeft}>
-            <View style={styles.subtleIcon}>
-              <Ionicons name="moon" size={16} color="#8B5CF6" />
+      <View style={styles.subtleContainer}>
+        <Card style={styles.subtleCard}>
+          <View style={styles.subtleContent}>
+            <View style={styles.subtleIconContainer}>
+              <LinearGradient
+                colors={['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.05)']}
+                style={styles.subtleIconGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+              >
+                <Ionicons name="moon-outline" size={18} color="#8B5CF6" />
+              </LinearGradient>
             </View>
-            <View>
+            <View style={styles.subtleTextContainer}>
               <Text style={styles.subtleTitle}>Avond reflectie</Text>
               <Text style={styles.subtleMessage}>
-                {hasReflection ? '✅ Reflectie opgeslagen' : getTimeMessage()}
+                {hasReflection ? 'Reflectie opgeslagen' : getTimeMessage()}
               </Text>
             </View>
+            <TouchableOpacity
+              style={styles.subtleButton}
+              onPress={hasReflection ? handleViewReflection : handleStartReflection}
+            >
+              <Text style={styles.subtleButtonText}>
+                {hasReflection ? 'Bekijk' : 'Later'}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color="#8B5CF6" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.subtleButton}
-            onPress={hasReflection ? handleViewReflection : handleStartReflection}
-          >
-            <Text style={styles.subtleButtonText}>
-              {hasReflection ? 'Bekijken' : 'Later'}
-            </Text>
-            <Ionicons name="chevron-forward" size={12} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-      </Card>
+        </Card>
+      </View>
     );
   }
 
-  // Prominente versie voor de avond
+  // PROMINENTE VERSIE - Avond (meer zichtbaar, boven aan)
   return (
-    <Card style={StyleSheet.flatten([
-      styles.prominentCard,
-      style.urgent ? styles.urgentCard : styles.normalCard
-    ])}>
-      {/* Decoratieve elementen */}
-      <View style={[styles.decorativeCircle, styles.decorativeCircleTop]} />
-      <View style={[styles.decorativeCircle, styles.decorativeCircleBottom]} />
-      
-      <View style={[
-        styles.prominentContent,
-        style.size === 'prominent' ? styles.prominentContentLarge : styles.prominentContentNormal
-      ]}>
-        {/* Icoon */}
-        <View style={[
-          styles.iconContainer,
-          style.urgent ? styles.iconContainerUrgent : styles.iconContainerNormal,
-          style.size === 'prominent' ? styles.iconContainerLarge : styles.iconContainerDefault
-        ]}>
-          <Ionicons 
-            name="moon" 
-            size={style.size === 'prominent' ? 40 : 32} 
-            color={style.urgent ? "#FCD34D" : "#FFFFFF"} 
-          />
-        </View>
-
-        {/* Titel */}
-        <Text style={[
-          styles.title,
-          style.urgent ? styles.titleUrgent : styles.titleNormal,
-          style.size === 'prominent' ? styles.titleLarge : styles.titleDefault
-        ]}>
-          {hasReflection 
-            ? (style.urgent ? '🌙 Reflectie opgeslagen!' : '🌅 Dag afgerond') 
-            : (style.urgent ? '🌙 Tijd voor reflectie!' : '🌅 Sluit je dag af')
+    <View style={styles.prominentContainer}>
+      <Card style={StyleSheet.flatten([
+        styles.prominentCard,
+        timeCategory === 'night' ? styles.nightCard : styles.eveningCard
+      ])}>
+        {/* Decoratieve gradient achtergrond */}
+        <LinearGradient
+          colors={timeCategory === 'night' 
+            ? ['rgba(30, 41, 59, 0.95)', 'rgba(51, 65, 85, 0.9)']
+            : ['rgba(139, 92, 246, 0.05)', 'rgba(168, 85, 247, 0.02)']
           }
-        </Text>
-
-        {/* Bericht */}
-        <Text style={[
-          styles.message,
-          style.urgent ? styles.messageUrgent : styles.messageNormal
-        ]}>
-          {getTimeMessage()}
-        </Text>
-
-        {/* Tijd indicator */}
+          style={styles.prominentGradientBg}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+        />
+        
+        {/* Decoratieve cirkels */}
         <View style={[
-          styles.timeIndicator,
-          style.urgent ? styles.timeIndicatorUrgent : styles.timeIndicatorNormal
-        ]}>
-          <Ionicons name="time" size={16} color={style.urgent ? "#CBD5E1" : "#8B5CF6"} />
-          <Text style={[
-            styles.timeText,
-            style.urgent ? styles.timeTextUrgent : styles.timeTextNormal
-          ]}>
-            {currentTime.toLocaleTimeString('nl-NL', { 
-              hour: '2-digit', 
-              minute: '2-digit'
-            })}
-          </Text>
-        </View>
+          styles.decorativeCircle, 
+          styles.decorativeCircleTop,
+          { backgroundColor: timeCategory === 'night' ? 'rgba(248, 250, 252, 0.1)' : 'rgba(139, 92, 246, 0.1)' }
+        ]} />
+        <View style={[
+          styles.decorativeCircle, 
+          styles.decorativeCircleBottom,
+          { backgroundColor: timeCategory === 'night' ? 'rgba(248, 250, 252, 0.05)' : 'rgba(168, 85, 247, 0.08)' }
+        ]} />
 
-        {/* CTA Buttons */}
-        <View style={styles.buttonContainer}>
-          <Button
-            title={hasReflection 
-              ? (style.urgent ? 'Reflectie bekijken' : 'Bekijk reflectie')
-              : (style.urgent ? 'Nu reflecteren' : 'Start reflectie')
-            }
-            onPress={hasReflection ? handleViewReflection : handleStartReflection}
-            style={StyleSheet.flatten([
-              styles.primaryButton,
-              style.urgent ? styles.primaryButtonUrgent : styles.primaryButtonNormal,
-              style.size === 'prominent' ? styles.buttonLarge : styles.buttonDefault
-            ])}
-            textStyle={StyleSheet.flatten([
-              styles.primaryButtonText,
-              style.urgent ? styles.primaryButtonTextUrgent : styles.primaryButtonTextNormal
-            ])}
-          />
-          
-          <Button
-            title={getPlanningButtonText()}
-            onPress={handlePlanNextDay}
-            style={StyleSheet.flatten([
-              styles.secondaryButton,
-              style.urgent ? styles.secondaryButtonUrgent : styles.secondaryButtonNormal,
-              style.size === 'prominent' ? styles.buttonLarge : styles.buttonDefault
-            ])}
-            textStyle={StyleSheet.flatten([
-              styles.secondaryButtonText,
-              style.urgent ? styles.secondaryButtonTextUrgent : styles.secondaryButtonTextNormal
-            ])}
-          />
-        </View>
-
-        {/* Extra motivatie voor late uren */}
-        {style.urgent && (
-          <View style={styles.motivationContainer}>
-            <Text style={styles.motivationText}>
-              💤 Een goede reflectie helpt je beter te slapen en morgen sterker te starten!
-            </Text>
-          </View>
-        )}
-
-        {/* Progress indicator voor avond */}
-        {(isReflectionTimeNow || isAlmostReflectionTimeNow) && totalGoals > 0 && (
-          <View style={[
-            styles.progressContainer,
-            style.urgent ? styles.progressContainerUrgent : styles.progressContainerNormal
-          ]}>
-            <View style={styles.progressRow}>
-              <View style={styles.progressItem}>
+        <View style={styles.prominentContent}>
+          {/* Header met icoon */}
+          <View style={styles.prominentHeader}>
+            <View style={[
+              styles.prominentIconContainer,
+              timeCategory === 'night' ? styles.nightIconContainer : styles.eveningIconContainer
+            ]}>
+              <LinearGradient
+                colors={timeCategory === 'night'
+                  ? ['#FCD34D', '#F59E0B']
+                  : ['#8B5CF6', '#A855F7']
+                }
+                style={styles.prominentIconGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+              >
                 <Ionicons 
-                  name="checkmark-circle" 
-                  size={16} 
-                  color={style.urgent ? "#CBD5E1" : "#8B5CF6"} 
+                  name={timeCategory === 'night' ? "moon" : "partly-sunny"} 
+                  size={28} 
+                  color="#FFFFFF" 
+                />
+              </LinearGradient>
+            </View>
+            <View style={styles.prominentTextHeader}>
+              <Text style={[
+                styles.prominentTitle,
+                { color: timeCategory === 'night' ? '#F8FAFC' : '#1e293b' }
+              ]}>
+                {hasReflection 
+                  ? 'Dag afgesloten' 
+                  : (timeCategory === 'night' ? 'Tijd voor reflectie!' : 'Sluit je dag af')
+                }
+              </Text>
+              <View style={styles.timeIndicator}>
+                <Ionicons 
+                  name="time-outline" 
+                  size={14} 
+                  color={timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6'} 
                 />
                 <Text style={[
-                  styles.progressText,
-                  style.urgent ? styles.progressTextUrgent : styles.progressTextNormal
+                  styles.timeText,
+                  { color: timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6' }
                 ]}>
-                  {completedGoals} voltooid
-                </Text>
-              </View>
-              <View style={styles.progressItem}>
-                <Ionicons 
-                  name="time" 
-                  size={16} 
-                  color={style.urgent ? "#CBD5E1" : "#8B5CF6"} 
-                />
-                <Text style={[
-                  styles.progressText,
-                  style.urgent ? styles.progressTextUrgent : styles.progressTextNormal
-                ]}>
-                  {totalGoals - completedGoals} te gaan
+                  {currentTime.toLocaleTimeString('nl-NL', { 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                  })}
                 </Text>
               </View>
             </View>
           </View>
-        )}
-      </View>
-    </Card>
+
+          {/* Message */}
+          <Text style={[
+            styles.prominentMessage,
+            { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+          ]}>
+            {getTimeMessage()}
+          </Text>
+
+          {/* Progress indicator */}
+          {totalGoals > 0 && (
+            <View style={[
+              styles.progressContainer,
+              timeCategory === 'night' ? styles.nightProgressContainer : styles.eveningProgressContainer
+            ]}>
+              <View style={styles.progressRow}>
+                <View style={styles.progressItem}>
+                  <Ionicons 
+                    name="checkmark-circle" 
+                    size={16} 
+                    color={timeCategory === 'night' ? '#10B981' : '#059669'} 
+                  />
+                  <Text style={[
+                    styles.progressText,
+                    { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+                  ]}>
+                    {completedGoals} voltooid
+                  </Text>
+                </View>
+                <View style={styles.progressItem}>
+                  <Ionicons 
+                    name="list-outline" 
+                    size={16} 
+                    color={timeCategory === 'night' ? '#F59E0B' : '#EA580C'} 
+                  />
+                  <Text style={[
+                    styles.progressText,
+                    { color: timeCategory === 'night' ? '#CBD5E1' : '#64748b' }
+                  ]}>
+                    {totalGoals - completedGoals} te gaan
+                  </Text>
+                </View>
+              </View>
+              <Text style={[
+                styles.progressPercentage,
+                { color: timeCategory === 'night' ? '#F8FAFC' : '#1e293b' }
+              ]}>
+                {completionPercentage}% voltooid
+              </Text>
+            </View>
+          )}
+
+          {/* Action buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                timeCategory === 'night' ? styles.nightPrimaryButton : styles.eveningPrimaryButton
+              ]}
+              onPress={hasReflection ? handleViewReflection : handleStartReflection}
+            >
+              <LinearGradient
+                colors={timeCategory === 'night'
+                  ? ['#FCD34D', '#F59E0B']
+                  : ['#8B5CF6', '#A855F7']
+                }
+                style={styles.primaryButtonGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+              >
+                <Ionicons 
+                  name={hasReflection ? "eye-outline" : "create-outline"} 
+                  size={20} 
+                  color="#FFFFFF" 
+                />
+                <Text style={styles.primaryButtonText}>
+                  {hasReflection 
+                    ? 'Bekijk reflectie'
+                    : (timeCategory === 'night' ? 'Nu reflecteren' : 'Start reflectie')
+                  }
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.secondaryButton,
+                timeCategory === 'night' ? styles.nightSecondaryButton : styles.eveningSecondaryButton
+              ]}
+              onPress={handlePlanNextDay}
+            >
+              <Ionicons 
+                name="calendar-outline" 
+                size={18} 
+                color={timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6'} 
+              />
+              <Text style={[
+                styles.secondaryButtonText,
+                { color: timeCategory === 'night' ? '#CBD5E1' : '#8B5CF6' }
+              ]}>
+                {timeCategory === 'night' ? 'Plan vandaag' : 'Plan morgen'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Extra motivatie voor late uren */}
+          {timeCategory === 'night' && !hasReflection && (
+            <View style={styles.motivationContainer}>
+              <Text style={styles.motivationText}>
+                Een goede reflectie helpt je beter te slapen en morgen sterker te starten!
+              </Text>
+            </View>
+          )}
+        </View>
+      </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Subtle card styles
+  // SUBTIELE VERSIE - Overdag
+  subtleContainer: {
+    marginBottom: 12,
+  },
   subtleCard: {
-    borderStyle: 'dashed',
-    borderColor: '#D1D5DB',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
     borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderStyle: 'solid',
+    shadowColor: 'rgba(139, 92, 246, 0.1)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   subtleContent: {
     flexDirection: 'row',
@@ -359,279 +391,257 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
   },
-  subtleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  subtleIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    marginRight: 12,
+    overflow: 'hidden',
   },
-  subtleIcon: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#F3E8FF',
-    borderRadius: 16,
+  subtleIconGradient: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+  },
+  subtleTextContainer: {
+    flex: 1,
   },
   subtleTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
     marginBottom: 2,
   },
   subtleMessage: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
   subtleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    gap: 4,
   },
   subtleButtonText: {
     fontSize: 14,
-    color: '#6B7280',
-    marginRight: 4,
+    color: '#8B5CF6',
+    fontWeight: '600',
   },
 
-  // Prominent card styles
+  // PROMINENTE VERSIE - Avond  
+  prominentContainer: {
+    marginBottom: 24,
+  },
   prominentCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: 'rgba(139, 92, 246, 0.2)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 12,
     position: 'relative',
     overflow: 'hidden',
   },
-  urgentCard: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+  eveningCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
-  normalCard: {
-    backgroundColor: '#FEFCE8',
-    borderColor: '#DDD6FE',
+  nightCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    borderColor: 'rgba(51, 65, 85, 0.8)',
+  },
+  prominentGradientBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 24,
   },
   decorativeCircle: {
     position: 'absolute',
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   decorativeCircleTop: {
-    width: 128,
-    height: 128,
-    top: -64,
-    right: -64,
+    width: 120,
+    height: 120,
+    top: -60,
+    right: -60,
   },
   decorativeCircleBottom: {
-    width: 96,
-    height: 96,
-    bottom: -48,
-    left: -48,
-  },
-  prominentContent: {
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 1,
-  },
-  prominentContentLarge: {
-    padding: 32,
-  },
-  prominentContentNormal: {
-    padding: 24,
-  },
-
-  // Icon styles
-  iconContainer: {
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  iconContainerUrgent: {
-    backgroundColor: 'rgba(252, 211, 77, 0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(252, 211, 77, 0.3)',
-  },
-  iconContainerNormal: {
-    backgroundColor: '#8B5CF6',
-  },
-  iconContainerLarge: {
     width: 80,
     height: 80,
+    bottom: -40,
+    left: -40,
   },
-  iconContainerDefault: {
-    width: 64,
-    height: 64,
+  prominentContent: {
+    position: 'relative',
+    zIndex: 1,
+    padding: 28,
   },
-
-  // Title styles
-  title: {
-    fontWeight: 'bold',
-    textAlign: 'center',
+  prominentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  prominentIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    marginRight: 16,
+    overflow: 'hidden',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  eveningIconContainer: {
+    // Extra shadow for evening version
+  },
+  nightIconContainer: {
+    shadowColor: 'rgba(252, 211, 77, 0.4)',
+  },
+  prominentIconGradient: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prominentTextHeader: {
+    flex: 1,
+  },
+  prominentTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
-  titleUrgent: {
-    color: '#FFFFFF',
-  },
-  titleNormal: {
-    color: '#8B5CF6',
-  },
-  titleLarge: {
-    fontSize: 24,
-  },
-  titleDefault: {
-    fontSize: 20,
-  },
-
-  // Message styles
-  message: {
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-    maxWidth: 300,
-  },
-  messageUrgent: {
-    color: '#CBD5E1',
-  },
-  messageNormal: {
-    color: '#6B7280',
-  },
-
-  // Time indicator styles
   timeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  timeIndicatorUrgent: {
-    backgroundColor: 'rgba(51, 65, 85, 0.5)',
-    borderWidth: 1,
-    borderColor: '#475569',
-  },
-  timeIndicatorNormal: {
-    backgroundColor: '#F3E8FF',
+    gap: 6,
   },
   timeText: {
     fontSize: 14,
-    marginLeft: 8,
+    fontWeight: '600',
   },
-  timeTextUrgent: {
-    color: '#CBD5E1',
+  prominentMessage: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '500',
+    marginBottom: 20,
+    maxWidth: '95%',
   },
-  timeTextNormal: {
-    color: '#8B5CF6',
+  progressContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
-
-  // Button styles
+  eveningProgressContainer: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  nightProgressContainer: {
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderColor: 'rgba(71, 85, 105, 0.8)',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 12,
+  },
+  progressItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  progressPercentage: {
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
   buttonContainer: {
     gap: 12,
-    width: '100%',
-    maxWidth: 300,
   },
   primaryButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  primaryButtonUrgent: {
-    backgroundColor: '#FCD34D',
-    borderWidth: 2,
-    borderColor: '#FCD34D',
+  eveningPrimaryButton: {
+    shadowColor: 'rgba(139, 92, 246, 0.4)',
   },
-  primaryButtonNormal: {
-    backgroundColor: '#8B5CF6',
+  nightPrimaryButton: {
+    shadowColor: 'rgba(252, 211, 77, 0.4)',
+  },
+  primaryButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 10,
   },
   primaryButtonText: {
-    fontWeight: '600',
     fontSize: 16,
-  },
-  primaryButtonTextUrgent: {
-    color: '#0F172A',
-  },
-  primaryButtonTextNormal: {
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 2,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
   },
-  secondaryButtonUrgent: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
+  eveningSecondaryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
-  secondaryButtonNormal: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DDD6FE',
+  nightSecondaryButton: {
+    backgroundColor: 'rgba(55, 65, 81, 0.8)',
+    borderColor: 'rgba(75, 85, 99, 0.8)',
   },
   secondaryButtonText: {
-    fontWeight: '500',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  secondaryButtonTextUrgent: {
-    color: '#CBD5E1',
-  },
-  secondaryButtonTextNormal: {
-    color: '#8B5CF6',
-  },
-  buttonLarge: {
-    paddingVertical: 16,
-  },
-  buttonDefault: {
-    paddingVertical: 14,
-  },
-
-  // Motivation styles
   motivationContainer: {
-    marginTop: 24,
+    marginTop: 20,
     padding: 16,
-    backgroundColor: 'rgba(30, 41, 59, 0.5)',
-    borderRadius: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: 'rgba(71, 85, 105, 0.8)',
   },
   motivationText: {
     fontSize: 14,
     color: '#CBD5E1',
     textAlign: 'center',
-  },
-
-  // Progress styles
-  progressContainer: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  progressContainerUrgent: {
-    backgroundColor: 'rgba(30, 41, 59, 0.5)',
-    borderColor: '#475569',
-  },
-  progressContainerNormal: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#DDD6FE',
-  },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-  },
-  progressItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressText: {
-    fontSize: 14,
-    marginLeft: 4,
-  },
-  progressTextUrgent: {
-    color: '#CBD5E1',
-  },
-  progressTextNormal: {
-    color: '#8B5CF6',
+    fontWeight: '500',
+    lineHeight: 20,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { GoalItem } from '../components/shared/GoalItem';
@@ -19,8 +22,12 @@ import { Timeline } from '../components/shared/Timeline';
 import { EveningReflectionCTA } from '../components/shared/EveningReflectionCTA';
 import { useTodayGoals } from '../hooks/useTodayGoals';
 import { Goal, MissedReason } from '../types';
+import type { RootTabParamList } from '../navigation/AppNavigator';
+
+type TodayScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Today'>;
 
 export default function TodayScreen() {
+  const navigation = useNavigation<TodayScreenNavigationProp>();
   const {
     goals,
     loading,
@@ -37,6 +44,45 @@ export default function TodayScreen() {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [reflectionRefreshTrigger, setReflectionRefreshTrigger] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Refresh alle data wanneer de pagina focus krijgt
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Today screen focused - refreshing data...');
+      refreshGoals();
+      setReflectionRefreshTrigger(prev => prev + 1);
+    }, [refreshGoals])
+  );
+
+  // Handmatige refresh functie voor pull-to-refresh
+  const handleManualRefresh = useCallback(async () => {
+    console.log('Manual refresh triggered...');
+    setIsRefreshing(true);
+    
+    try {
+      // Refresh goals
+      await refreshGoals();
+      
+      // Refresh reflection status
+      setReflectionRefreshTrigger(prev => prev + 1);
+      
+      // Korte delay voor betere UX (zodat gebruiker ziet dat er iets gebeurt)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log('Manual refresh completed successfully');
+    } catch (error) {
+      console.error('Error during manual refresh:', error);
+      Alert.alert(
+        'Refresh Fout',
+        'Er ging iets mis tijdens het verversen. Probeer het opnieuw.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshGoals]);
 
   const completedGoals = goals.filter(goal => goal.completed);
   const pendingGoals = goals.filter(goal => !goal.completed && !goal.missed);
@@ -103,7 +149,21 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleManualRefresh}
+            colors={['#8B5CF6', '#A855F7']} // Android gradient colors
+            tintColor="#8B5CF6" // iOS spinner color
+            title="Doelen & reflecties verversen..." // iOS text
+            titleColor="#6B7280" // iOS text color
+            progressBackgroundColor="#FFFFFF" // Android background
+          />
+        }
+      >
         {/* Modern Subtiele Hero */}
         <View style={styles.heroContainer}>
           <View style={styles.heroHeader}>
@@ -186,6 +246,16 @@ export default function TodayScreen() {
             </View>
           </View>
         </View>
+
+        {/* Evening Reflection CTA - Automatische versie keuze op basis van tijd */}
+        <EveningReflectionCTA
+          totalGoals={goals.length}
+          completedGoals={completedGoals.length}
+          onStartReflection={() => navigation.navigate('Reflection')}
+          onViewReflection={() => navigation.navigate('Reflection')}
+          onPlanNextDay={() => navigation.navigate('Planning')}
+          refreshTrigger={reflectionRefreshTrigger}
+        />
 
         {/* Futuristic View Toggle */}
         <View style={styles.viewToggle}>
@@ -425,14 +495,6 @@ export default function TodayScreen() {
             </CardContent>
           </Card>
         )}
-
-        {/* Evening Reflection CTA */}
-        <View style={styles.reflectionContainer}>
-          <EveningReflectionCTA
-            totalGoals={goals.length}
-            completedGoals={completedGoals.length}
-          />
-        </View>
 
         {/* Bottom padding for tab bar */}
         <View style={styles.bottomPadding} />
