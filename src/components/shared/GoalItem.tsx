@@ -8,8 +8,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Goal, MissedReason } from '../../types';
-import { Card, CardContent } from '../ui/Card';
-import Button from '../ui/Button';
 import { MissGoalModal } from './MissGoalModal';
 
 interface GoalItemProps {
@@ -37,6 +35,23 @@ const getCategoryColor = (category: string): string => {
   return colors[category] || colors.other;
 };
 
+// Helper function om category label te krijgen
+const getCategoryLabel = (category: string): string => {
+  const labels: Record<string, string> = {
+    health: 'Gezondheid',
+    productivity: 'Productiviteit',
+    household: 'Huishouden',
+    practical: 'Praktisch',
+    personal_development: 'Ontwikkeling',
+    entertainment: 'Entertainment',
+    social: 'Sociaal',
+    finance: 'Financiën',
+    shopping: 'Boodschappen',
+    other: 'Overig',
+  };
+  return labels[category] || labels.other;
+};
+
 export function GoalItem({ 
   goal, 
   onToggleComplete, 
@@ -45,6 +60,7 @@ export function GoalItem({
   onMarkAsMissed 
 }: GoalItemProps) {
   const [showMissModal, setShowMissModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const categoryColor = getCategoryColor(goal.category);
   const isCompleted = goal.completed;
   const isMissed = !!goal.missed;
@@ -62,10 +78,17 @@ export function GoalItem({
         },
       ]
     );
+    setShowMenu(false);
   };
 
   const handleMarkAsMissed = () => {
     setShowMissModal(true);
+    setShowMenu(false);
+  };
+
+  const handleEdit = () => {
+    onEdit(goal);
+    setShowMenu(false);
   };
 
   const handleMissConfirm = (reason: MissedReason, notes?: string) => {
@@ -74,14 +97,47 @@ export function GoalItem({
   };
 
   return (
-    <Card style={StyleSheet.flatten([
-      styles.goalCard,
-      isCompleted && styles.completedCard,
-      isMissed && styles.missedCard,
-    ])}>
-      <CardContent style={styles.cardContent}>
-        {/* Left side - Checkbox and content */}
-        <View style={styles.leftSide}>
+    <View style={[
+      styles.goalContainer,
+    ]}>
+      {/* Modern Goal Card */}
+      <View style={[
+        styles.goalCard,
+        isCompleted && {
+          backgroundColor: '#F0FDF4', // Licht groene achtergrond
+          borderColor: '#BBF7D0', // Groene border
+          shadowColor: '#10B981', // Groene gloed
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 4,
+        },
+        isMissed && {
+          backgroundColor: '#FEF2F2', // Licht rode achtergrond
+          borderColor: '#FECACA', // Rode border
+          shadowColor: '#EF4444', // Rode gloed
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 4,
+        }
+      ]}>
+        {/* Category Header Row */}
+        <View style={styles.categoryRow}>
+          <Text style={[styles.categoryText, { color: categoryColor }]}>
+            {getCategoryLabel(goal.category).toUpperCase()}
+          </Text>
+          <TouchableOpacity 
+            style={styles.menuButton}
+            onPress={() => setShowMenu(!showMenu)}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color="#64748B" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.contentRow}>
+          {/* Checkbox */}
           <TouchableOpacity 
             style={[
               styles.checkbox,
@@ -92,31 +148,22 @@ export function GoalItem({
             disabled={isMissed}
           >
             {isCompleted && (
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
             )}
             {isMissed && (
-              <Ionicons name="close" size={16} color="#FFFFFF" />
+              <Ionicons name="close" size={14} color="#FFFFFF" />
             )}
           </TouchableOpacity>
 
-          <View style={styles.content}>
-            <View style={styles.titleRow}>
-              <Text style={[
-                styles.title,
-                isCompleted && styles.completedTitle,
-                isMissed && styles.missedTitle,
-              ]}>
-                {goal.title}
-              </Text>
-              
-              {/* Category indicator */}
-              <View 
-                style={[
-                  styles.categoryIndicator, 
-                  { backgroundColor: categoryColor }
-                ]} 
-              />
-            </View>
+          {/* Content Section */}
+          <View style={styles.contentSection}>
+            <Text style={[
+              styles.title,
+              isCompleted && styles.completedTitle,
+              isMissed && styles.missedTitle,
+            ]}>
+              {goal.title}
+            </Text>
 
             {goal.description && (
               <Text style={[
@@ -130,48 +177,62 @@ export function GoalItem({
 
             {goal.timeSlot && (
               <Text style={[
-                styles.timeSlot,
+                styles.timeText,
                 isCompleted && styles.completedText,
                 isMissed && styles.missedText,
               ]}>
-                ⏰ {goal.timeSlot}
+                {goal.timeSlot}
               </Text>
             )}
 
             {isMissed && goal.missed && (
-              <Text style={styles.missedReason}>
-                Gemist: {goal.missed.reason}
-              </Text>
+              <View style={styles.missedInfoContainer}>
+                <Ionicons name="information-circle-outline" size={12} color="#EF4444" />
+                <Text style={styles.missedReason}>
+                  {goal.missed.reason}
+                </Text>
+              </View>
             )}
           </View>
         </View>
 
-        {/* Right side - Action buttons */}
-        <View style={styles.rightSide}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => onEdit(goal)}
-          >
-            <Ionicons name="pencil" size={16} color="#6B7280" />
-          </TouchableOpacity>
-
-          {!isCompleted && !isMissed && (
+        {/* Action Menu */}
+        {showMenu && (
+          <View style={styles.actionMenu}>
             <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={handleMarkAsMissed}
+              style={styles.menuItem}
+              onPress={handleEdit}
             >
-              <Ionicons name="close-circle" size={16} color="#EF4444" />
+              <Ionicons name="pencil" size={16} color="#3B82F6" />
+              <Text style={[styles.menuItemText, { color: '#3B82F6' }]}>
+                Aanpassen
+              </Text>
             </TouchableOpacity>
-          )}
 
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={handleDelete}
-          >
-            <Ionicons name="trash" size={16} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-      </CardContent>
+            {!isCompleted && !isMissed && (
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={handleMarkAsMissed}
+              >
+                <Ionicons name="close-circle" size={16} color="#EF4444" />
+                <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
+                  Niet gehaald
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={handleDelete}
+            >
+              <Ionicons name="trash" size={16} color="#EF4444" />
+              <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
+                Verwijderen
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
       <MissGoalModal
         visible={showMissModal}
@@ -179,45 +240,75 @@ export function GoalItem({
         onConfirm={handleMissConfirm}
         onCancel={() => setShowMissModal(false)}
       />
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Modern Container
+  goalContainer: {
+    marginBottom: 12,
+  },
+  completedContainer: {
+    // Geen opacity meer, we gebruiken gloed
+  },
+  missedContainer: {
+    // Geen opacity meer, we gebruiken gloed
+  },
+
+  // Modern Goal Card
   goalCard: {
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F4F8', // Zachter dan grijs
   },
-  completedCard: {
-    borderLeftColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  missedCard: {
-    borderLeftColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
-  },
-  cardContent: {
-    padding: 12,
+
+  // Category Header Row
+  categoryRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  leftSide: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    marginRight: 12,
-    marginTop: 2,
+  menuButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F7FAFC', // Warmer achtergrond
+  },
+
+  // Content Row
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+
+  // Modern Checkbox
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    marginRight: 12,
+    marginTop: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   checkedBox: {
     backgroundColor: '#10B981',
@@ -227,64 +318,82 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
     borderColor: '#EF4444',
   },
-  content: {
+
+  // Content Section
+  contentSection: {
     flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    flex: 1,
+    color: '#1A202C', // Warmer zwart
+    lineHeight: 20,
+    marginBottom: 4,
   },
   completedTitle: {
     textDecorationLine: 'line-through',
-    color: '#6B7280',
+    color: '#4A5568', // Warmer grijs
   },
   missedTitle: {
-    color: '#6B7280',
+    color: '#4A5568', // Warmer grijs
   },
-  categoryIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 8,
-  },
+
+  // Description
   description: {
     fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  timeSlot: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    fontWeight: '500',
+    color: '#4A5568', // Warmer grijs
+    marginBottom: 6,
+    lineHeight: 18,
   },
   completedText: {
-    color: '#9CA3AF',
+    color: '#718096', // Warmer grijs voor completed
   },
   missedText: {
     color: '#B91C1C',
+  },
+
+  // Time Text
+  timeText: {
+    fontSize: 13,
+    color: '#4A5568', // Warmer grijs
+    fontWeight: '500',
+  },
+
+  // Missed Info Container
+  missedInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   missedReason: {
     fontSize: 12,
     color: '#EF4444',
     fontStyle: 'italic',
-    marginTop: 4,
+    marginLeft: 4,
   },
-  rightSide: {
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  // Action Menu
+  actionMenu: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
     gap: 8,
   },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F9FAFB',
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F7FAFC', // Warmer achtergrond
+    gap: 8,
+  },
+  menuItemText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
