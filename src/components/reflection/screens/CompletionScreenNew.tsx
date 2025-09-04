@@ -423,11 +423,11 @@ const styles = StyleSheet.create({
   },
   statGradientBg: {
     position: 'absolute',
-    top: -25,
-    right: -20,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    top: -30,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     zIndex: 0,
   },
   statContent: {

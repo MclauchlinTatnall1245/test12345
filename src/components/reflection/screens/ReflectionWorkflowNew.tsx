@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
   navigationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginHorizontal: 24,
     marginBottom: 20,
     gap: 16,
@@ -918,7 +918,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 16,
     elevation: 8,
-    minWidth: 140,
   },
   primaryButtonDisabled: {
     opacity: 0.6,
@@ -950,7 +949,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 12,
     elevation: 4,
-    minWidth: 100,
   },
   secondaryButtonContent: {
     flexDirection: 'row',
