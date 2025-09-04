@@ -9,7 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Card } from '../components/ui/Card';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Card, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Goal, Suggestion, GoalCategory } from '../types';
 import { CategorySystemHelper } from '../lib/category-system';
@@ -17,6 +18,7 @@ import TimeService from '../lib/time-service';
 import { DataService, SuggestionEngine } from '../lib/data-service';
 import { Timeline } from '../components/shared/Timeline';
 import { GoalForm } from '../components/shared/GoalForm';
+import { GoalItem } from '../components/shared/GoalItem';
 
 export default function PlanningScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -97,22 +99,10 @@ export default function PlanningScreen() {
   };
 
   const handleDeleteGoal = (goalId: string) => {
-    Alert.alert(
-      'Doel verwijderen',
-      'Weet je zeker dat je dit doel wilt verwijderen?',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        { 
-          text: 'Verwijderen', 
-          style: 'destructive',
-          onPress: () => {
-            const updatedGoals = goals.filter(goal => goal.id !== goalId);
-            setGoals(updatedGoals);
-            DataService.deleteGoal(planningDate, goalId);
-          }
-        }
-      ]
-    );
+    // Direct verwijderen - GoalItem component heeft al zijn eigen confirmatie
+    const updatedGoals = goals.filter(goal => goal.id !== goalId);
+    setGoals(updatedGoals);
+    DataService.deleteGoal(planningDate, goalId);
   };
 
   const getCategoryLabel = (category: string) => {
@@ -145,7 +135,11 @@ export default function PlanningScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Debug Panel */}
         <View style={styles.debugContainer}>
           <TouchableOpacity
@@ -176,208 +170,284 @@ export default function PlanningScreen() {
           </Card>
         )}
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="moon" size={32} color="#FFFFFF" />
+        {/* Modern Subtiele Hero */}
+        <View style={styles.heroContainer}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroIconContainer}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.iconGradient}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+              >
+                <Ionicons name="moon-outline" size={24} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroTitle}>{getPlanningTitle()}</Text>
+              <Text style={styles.heroSubtitle}>{getPlanningDescription()}</Text>
+            </View>
           </View>
-          <Text style={styles.title}>{getPlanningTitle()}</Text>
-          <Text style={styles.subtitle}>{getPlanningDescription()}</Text>
         </View>
 
-        {/* Stats Overview */}
+        {/* Subtiele Stats Cards */}
         <View style={styles.statsContainer}>
-          <Card style={styles.statCard}>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(37, 99, 235, 0.15)', 'rgba(37, 99, 235, 0.05)']}
+              style={styles.statGradientBg}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+            />
             <View style={styles.statContent}>
-              <View style={styles.statLeft}>
-                <Text style={styles.statLabel}>Doelen gepland</Text>
-                <Text style={styles.statValue}>{goals.length}</Text>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DBEAFE' }]}> 
+                <Ionicons name="list-outline" size={14} color="#2563EB" />
               </View>
-              <View style={styles.statIcon}>
-                <Ionicons name="list" size={24} color="#3B82F6" />
+              <View style={styles.statTextContainer}>
+                <Text style={styles.statLabel}>Doelen</Text>
+                <Text style={[styles.statValue, { color: '#2563EB' }]}>{goals.length}</Text>
               </View>
             </View>
-          </Card>
+          </View>
 
-          <Card style={styles.statCard}>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.05)']}
+              style={styles.statGradientBg}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+            />
             <View style={styles.statContent}>
-              <View style={styles.statLeft}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#DCFCE7' }]}> 
+                <Ionicons name="time-outline" size={14} color="#10B981" />
+              </View>
+              <View style={styles.statTextContainer}>
                 <Text style={styles.statLabel}>Met tijd</Text>
-                <Text style={styles.statValue}>{goals.filter(g => g.timeSlot).length}</Text>
-              </View>
-              <View style={styles.statIcon}>
-                <Ionicons name="time" size={24} color="#10B981" />
+                <Text style={[styles.statValue, { color: '#10B981' }]}>{goals.filter(g => g.timeSlot).length}</Text>
               </View>
             </View>
-          </Card>
+          </View>
 
-          <Card style={styles.statCard}>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.05)']}
+              style={styles.statGradientBg}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+            />
             <View style={styles.statContent}>
-              <View style={styles.statLeft}>
-                <Text style={styles.statLabel}>Suggesties</Text>
-                <Text style={styles.statValue}>{suggestions.length}</Text>
+              <View style={[styles.statIconContainer, { backgroundColor: '#EDE9FE' }]}> 
+                <Ionicons name="bulb-outline" size={14} color="#8B5CF6" />
               </View>
-              <View style={styles.statIcon}>
-                <Ionicons name="bulb" size={24} color="#8B5CF6" />
+              <View style={styles.statTextContainer}>
+                <Text style={styles.statLabel}>Suggesties</Text>
+                <Text style={[styles.statValue, { color: '#8B5CF6' }]}>{suggestions.length}</Text>
               </View>
             </View>
-          </Card>
+          </View>
         </View>
 
-        {/* View Toggle */}
+        {/* Futuristic View Toggle */}
         {goals.length > 0 && (
-          <View style={styles.viewToggleContainer}>
-            <View style={styles.viewToggle}>
-              <TouchableOpacity
-                style={[
-                  styles.viewToggleButton,
-                  !showTimeline && styles.viewToggleButtonActive
-                ]}
-                onPress={() => setShowTimeline(false)}
-              >
-                <Ionicons 
-                  name="list" 
-                  size={16} 
-                  color={!showTimeline ? '#FFFFFF' : '#6B7280'} 
-                  style={styles.viewToggleIcon}
-                />
-                <Text style={[
-                  styles.viewToggleText,
-                  !showTimeline && styles.viewToggleTextActive
-                ]}>
-                  Lijst
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.viewToggleButton,
-                  showTimeline && styles.viewToggleButtonActive
-                ]}
-                onPress={() => setShowTimeline(true)}
-              >
-                <Ionicons 
-                  name="time" 
-                  size={16} 
-                  color={showTimeline ? '#FFFFFF' : '#6B7280'} 
-                  style={styles.viewToggleIcon}
-                />
-                <Text style={[
-                  styles.viewToggleText,
-                  showTimeline && styles.viewToggleTextActive
-                ]}>
-                  Tijdlijn
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                !showTimeline && styles.toggleButtonActive
+              ]}
+              onPress={() => setShowTimeline(false)}
+            >
+              {!showTimeline ? (
+                <LinearGradient
+                  colors={['#667eea', '#764ba2']}
+                  style={styles.toggleGradient}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                >
+                  <Ionicons 
+                    name="grid-outline" 
+                    size={20} 
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.toggleTextActive}>
+                    Lijst
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.toggleGradient}>
+                  <Ionicons 
+                    name="grid-outline" 
+                    size={20} 
+                    color="#64748B"
+                  />
+                  <Text style={styles.toggleText}>
+                    Lijst
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                showTimeline && styles.toggleButtonActive
+              ]}
+              onPress={() => setShowTimeline(true)}
+            >
+              {showTimeline ? (
+                <LinearGradient
+                  colors={['#667eea', '#764ba2']}
+                  style={styles.toggleGradient}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                >
+                  <Ionicons 
+                    name="time-outline" 
+                    size={20} 
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.toggleTextActive}>
+                    Tijdlijn
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.toggleGradient}>
+                  <Ionicons 
+                    name="time-outline" 
+                    size={20} 
+                    color="#64748B"
+                  />
+                  <Text style={styles.toggleText}>
+                    Tijdlijn
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Timeline View */}
-        {showTimeline && goals.length > 0 && (
-          <Card style={styles.timelineCard}>
-            <Text style={styles.timelineTitle}>⏰ Tijdlijn voor morgen</Text>
-            <Text style={styles.timelineSubtitle}>Je doelen georganiseerd op tijd</Text>
+        {/* Content based on view mode */}
+        {showTimeline ? (
+          /* Timeline View */
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderCompact}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="time-outline" size={24} color="#1e293b" />
+                <Text style={styles.sectionTitle}>Tijdlijn voor morgen</Text>
+              </View>
+            </View>
             <Timeline 
               goals={goals} 
               targetDate={planningDate}
               showEmptySlots={false}
               onEditGoal={handleEditGoal}
             />
-          </Card>
-        )}
-
-        {/* Goals List - alleen tonen als niet timeline view */}
-        {!showTimeline && (
-          <Card style={styles.goalsCard}>
-            <Text style={styles.goalsTitle}>Je doelen voor morgen</Text>
-            <Text style={styles.goalsSubtitle}>{goals.length} doelen gepland</Text>
+          </View>
+        ) : (
+          /* Cards View */
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="clipboard-outline" size={24} color="#1e293b" />
+                <Text style={styles.sectionTitle}>
+                  Je doelen voor morgen ({goals.length})
+                </Text>
+              </View>
+            </View>
             
             {goals.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="list-outline" size={48} color="#9CA3AF" />
-                <Text style={styles.emptyTitle}>Nog geen doelen voor morgen</Text>
-                <Text style={styles.emptyText}>Voeg je eerste doel toe om te beginnen!</Text>
+              <View style={styles.emptySection}>
+                <Ionicons name="list-outline" size={20} color="#8B5CF6" />
+                <Text style={styles.emptySectionText}>
+                  Nog geen doelen voor morgen
+                </Text>
               </View>
             ) : (
               <View style={styles.goalsList}>
                 {goals.map((goal) => (
-                  <Card key={goal.id} style={styles.goalCard}>
-                    <View style={styles.goalContent}>
-                      <View style={styles.goalMain}>
-                        <Text style={styles.goalTitle}>{goal.title}</Text>
-                        <Text style={styles.goalCategory}>
-                          {getCategoryLabel(goal.category)}
-                        </Text>
-                        {goal.description && (
-                          <Text style={styles.goalDescription}>{goal.description}</Text>
-                        )}
-                        {goal.timeSlot && (
-                          <View style={styles.timeSlot}>
-                            <Ionicons name="time" size={16} color="#6B7280" />
-                            <Text style={styles.timeSlotText}>{goal.timeSlot}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.goalActions}>
-                        <TouchableOpacity
-                          style={styles.editButton}
-                          onPress={() => handleEditGoal(goal)}
-                        >
-                          <Ionicons name="pencil" size={20} color="#6B7280" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.deleteButton}
-                          onPress={() => handleDeleteGoal(goal.id)}
-                        >
-                          <Ionicons name="trash" size={20} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </Card>
+                  <GoalItem
+                    key={goal.id}
+                    goal={goal}
+                    // onToggleComplete niet meegegeven - planning doelen kunnen niet afgevinkt worden
+                    onEdit={handleEditGoal}
+                    onDelete={handleDeleteGoal} // Delete button wel behouden
+                    // onMarkAsMissed niet meegegeven - planning doelen kunnen niet gemist worden
+                  />
                 ))}
               </View>
             )}
-          </Card>
+          </View>
         )}
 
-        {/* Add Goal Button */}
+        {/* Add Goal Button - altijd zichtbaar */}
         <TouchableOpacity 
-          style={styles.addGoalButton}
+          style={styles.primaryButton}
           onPress={() => setShowAddGoal(true)}
         >
-          <Text style={styles.addGoalButtonText}>+ Voeg Doel Toe</Text>
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            style={styles.buttonGradient}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+          >
+            <Ionicons name="add-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>
+              {goals.length === 0 ? 'Eerste doel toevoegen' : 'Voeg doel toe'}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Smart Suggestions */}
         {suggestions.length > 0 && (
-          <Card style={styles.suggestionsCard}>
-            <Text style={styles.suggestionsTitle}>💡 Slimme suggesties</Text>
-            <Text style={styles.suggestionsSubtitle}>Gebaseerd op je huidige planning</Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderCompact}>
+              <View style={styles.sectionTitleContainer}>
+                <Ionicons name="bulb-outline" size={24} color="#1e293b" />
+                <Text style={styles.sectionTitle}>Slimme suggesties</Text>
+              </View>
+            </View>
+            <Text style={styles.sectionSubtitle}>Gebaseerd op je huidige planning</Text>
             
             <View style={styles.suggestionsList}>
               {suggestions.map((suggestion) => (
-                <View key={suggestion.id} style={styles.suggestionItem}>
+                <Card key={suggestion.id} style={styles.suggestionCard}>
                   <View style={styles.suggestionContent}>
-                    <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
-                    <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
+                    <View style={styles.suggestionMain}>
+                      <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                      <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.addSuggestionButton}
+                      onPress={() => handleAddSuggestion(suggestion)}
+                    >
+                      <LinearGradient
+                        colors={['#667eea', '#764ba2']}
+                        style={styles.suggestionButtonGradient}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                      >
+                        <Ionicons name="add" size={16} color="#FFFFFF" />
+                      </LinearGradient>
+                    </TouchableOpacity>
                   </View>
-                  <Button
-                    title="+ Toevoegen"
-                    onPress={() => handleAddSuggestion(suggestion)}
-                    style={styles.addSuggestionButton}
-                  />
-                </View>
+                </Card>
               ))}
             </View>
-          </Card>
+          </View>
         )}
 
         {/* Planning Complete */}
         {goals.length > 0 && (
           <Card style={styles.completeCard}>
-            <View style={styles.completeContent}>
+            <CardContent style={styles.completeContent}>
               <View style={styles.completeIcon}>
-                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.completeIconGradient}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                >
+                  <Ionicons name="checkmark-circle" size={32} color="#FFFFFF" />
+                </LinearGradient>
               </View>
               <Text style={styles.completeTitle}>Je planning is klaar! ✨</Text>
               <Text style={styles.completeText}>
@@ -386,9 +456,12 @@ export default function PlanningScreen() {
               <Text style={styles.completeTip}>
                 💡 Tip: Bekijk je planning morgenochtend in de Timeline
               </Text>
-            </View>
+            </CardContent>
           </Card>
         )}
+
+        {/* Bottom padding for better scrolling */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
       
       {/* Goal Form Modal */}
@@ -406,18 +479,19 @@ export default function PlanningScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8FAFC', // Moderne neutrale achtergrond
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   debugContainer: {
     alignItems: 'flex-end',
     marginBottom: 16,
+    marginHorizontal: 24,
+    marginTop: 12,
   },
   debugButton: {
     padding: 8,
@@ -431,6 +505,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     borderColor: '#F59E0B',
     marginBottom: 16,
+    marginHorizontal: 24,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   debugTitle: {
     fontSize: 14,
@@ -443,197 +520,316 @@ const styles = StyleSheet.create({
     color: '#92400E',
     marginBottom: 4,
   },
-  header: {
-    alignItems: 'center',
+
+  // Ultra Modern Hero Section
+  heroContainer: {
+    marginHorizontal: 24,
+    marginTop: 12,
     marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: 'rgba(99, 102, 241, 0.2)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
   },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#6366F1',
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  heroIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    marginRight: 16,
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  iconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    shadowColor: 'rgba(102, 126, 234, 0.4)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
+  heroTextContainer: {
+    flex: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 4,
+    letterSpacing: -0.5,
   },
+  heroSubtitle: {
+    fontSize: 15,
+    color: '#64748b',
+    fontWeight: '600',
+    opacity: 0.9,
+  },
+
+  // Premium Glass Morphism Stats Cards
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    marginHorizontal: 24,
+    marginBottom: 28,
+    gap: 8,
   },
   statCard: {
     flex: 1,
-    marginHorizontal: 4,
-    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 10,
+    alignItems: 'center',
+    shadowColor: 'rgba(99, 102, 241, 0.15)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    minHeight: 65,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  statGradientBg: {
+    position: 'absolute',
+    top: -25,
+    right: -25,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    zIndex: 0,
   },
   statContent: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    width: '100%',
+    position: 'relative',
+    zIndex: 1,
   },
-  statLeft: {
-    flex: 1,
+  statTextContainer: {
+    alignItems: 'center',
+    width: '100%',
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goalsCard: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  goalsTitle: {
-    fontSize: 18,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#64748b',
     marginBottom: 4,
-  },
-  goalsSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -1,
+    textAlign: 'center',
+  },
+  statIconContainer: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    shadowColor: 'rgba(0, 0, 0, 0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+
+  // Modern Glass Toggle
+  viewToggle: {
+    flexDirection: 'row',
+    marginHorizontal: 24,
+    marginBottom: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: 'rgba(99, 102, 241, 0.2)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  toggleButton: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  toggleGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+    borderRadius: 10,
+  },
+  toggleGradientActive: {
+    shadowColor: 'rgba(102, 126, 234, 0.4)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  toggleButtonActive: {
+    transform: [{ scale: 1.02 }],
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.2,
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Premium Gradient Button
+  primaryButton: {
+    marginHorizontal: 24,
+    marginBottom: 32,
+    borderRadius: 20,
+    shadowColor: 'rgba(102, 126, 234, 0.4)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  buttonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    borderRadius: 20,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  primaryButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+  },
+
+  // Modern Sections
+  section: {
+    marginHorizontal: 24,
+    marginBottom: 40,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  sectionHeaderCompact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+    paddingHorizontal: 4,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#1e293b',
+    letterSpacing: -0.5,
+  },
+  sectionSubtitle: {
+    fontSize: 15,
+    color: '#64748b',
+    fontWeight: '500',
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  smallAddButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(102, 126, 234, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(102, 126, 234, 0.3)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  emptySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    gap: 8,
+  },
+  emptySectionText: {
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
+  // Goals List
   goalsList: {
     gap: 12,
   },
-  goalCard: {
-    padding: 16,
-  },
-  goalContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  goalMain: {
-    flex: 1,
-    marginRight: 12,
-  },
-  goalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  goalCategory: {
-    fontSize: 12,
-    color: '#3B82F6',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  goalDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  timeSlot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timeSlotText: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 4,
-  },
-  goalActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  editButton: {
-    padding: 8,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  addGoalButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addGoalButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  suggestionsCard: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  suggestionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  suggestionsSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
+
+  // Suggestions
   suggestionsList: {
     gap: 12,
   },
-  suggestionItem: {
+  suggestionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: 'rgba(99, 102, 241, 0.1)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  suggestionContent: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  suggestionContent: {
+  suggestionMain: {
     flex: 1,
     marginRight: 12,
   },
@@ -648,95 +844,81 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   addSuggestionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: 'rgba(102, 126, 234, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
   },
+  suggestionButtonGradient: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+
+  // Complete Card
   completeCard: {
-    padding: 24,
-    marginBottom: 16,
+    marginHorizontal: 24,
+    marginBottom: 32,
+    borderRadius: 24,
+    shadowColor: 'rgba(99, 102, 241, 0.15)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   completeContent: {
     alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 24,
   },
   completeIcon: {
     marginBottom: 16,
+    shadowColor: 'rgba(16, 185, 129, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  completeIconGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   completeTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
     marginBottom: 12,
     textAlign: 'center',
   },
   completeText: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 16,
+    color: '#64748b',
     textAlign: 'center',
     marginBottom: 12,
+    fontWeight: '500',
   },
   completeTip: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#64748b',
     textAlign: 'center',
-  },
-  // View Toggle Styles
-  viewToggleContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  viewToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  viewToggleButtonActive: {
-    backgroundColor: '#3B82F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  viewToggleIcon: {
-    marginRight: 8,
-  },
-  viewToggleText: {
-    fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    opacity: 0.8,
   },
-  viewToggleTextActive: {
-    color: '#FFFFFF',
-  },
-  // Timeline Styles
-  timelineCard: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  timelineTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  timelineSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
+
+  bottomPadding: {
+    height: 120,
   },
 });

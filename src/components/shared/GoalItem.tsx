@@ -13,10 +13,10 @@ import { MissGoalModal } from './MissGoalModal';
 
 interface GoalItemProps {
   goal: Goal;
-  onToggleComplete: (goalId: string) => void;
+  onToggleComplete?: (goalId: string) => void;
   onEdit: (goal: Goal) => void;
-  onDelete: (goalId: string) => void;
-  onMarkAsMissed: (goalId: string, reason: MissedReason, notes?: string) => void;
+  onDelete?: (goalId: string) => void;
+  onMarkAsMissed?: (goalId: string, reason: MissedReason, notes?: string) => void;
 }
 
 // Helper function om category kleur te krijgen
@@ -61,6 +61,8 @@ export function GoalItem({
   const isMissed = !!goal.missed;
 
   const handleDelete = () => {
+    if (!onDelete) return;
+    
     Alert.alert(
       'Doel verwijderen',
       'Weet je zeker dat je dit doel wilt verwijderen?',
@@ -87,7 +89,9 @@ export function GoalItem({
   };
 
   const handleMissConfirm = (reason: MissedReason, notes?: string) => {
-    onMarkAsMissed(goal.id, reason, notes);
+    if (onMarkAsMissed) {
+      onMarkAsMissed(goal.id, reason, notes);
+    }
     setShowMissModal(false);
   };
 
@@ -118,8 +122,8 @@ export function GoalItem({
             elevation: 4,
           }
         ]}
-        onPress={() => !isMissed && onToggleComplete(goal.id)}
-        disabled={isMissed}
+        onPress={() => !isMissed && onToggleComplete && onToggleComplete(goal.id)}
+        disabled={isMissed || !onToggleComplete}
         activeOpacity={0.7}
       >
         {/* Category Header Row */}
@@ -140,21 +144,23 @@ export function GoalItem({
 
         {/* Main Content */}
         <View style={styles.contentRow}>
-          {/* Checkbox - Nu alleen visueel, geen onPress meer */}
-          <View 
-            style={[
-              styles.checkbox,
-              isCompleted && styles.checkedBox,
-              isMissed && styles.missedBox,
-            ]}
-          >
-            {isCompleted && (
-              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-            )}
-            {isMissed && (
-              <Ionicons name="close" size={14} color="#FFFFFF" />
-            )}
-          </View>
+          {/* Checkbox - alleen tonen als onToggleComplete bestaat */}
+          {onToggleComplete && (
+            <View 
+              style={[
+                styles.checkbox,
+                isCompleted && styles.checkedBox,
+                isMissed && styles.missedBox,
+              ]}
+            >
+              {isCompleted && (
+                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+              )}
+              {isMissed && (
+                <Ionicons name="close" size={14} color="#FFFFFF" />
+              )}
+            </View>
+          )}
 
           {/* Content Section */}
           <View style={styles.contentSection}>
@@ -220,7 +226,7 @@ export function GoalItem({
               </Text>
             </TouchableOpacity>
 
-            {!isCompleted && !isMissed && (
+            {!isCompleted && !isMissed && onMarkAsMissed && (
               <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={(e) => {
@@ -235,28 +241,32 @@ export function GoalItem({
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleDelete();
-              }}
-            >
-              <Ionicons name="trash" size={16} color="#EF4444" />
-              <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
-                Verwijderen
-              </Text>
-            </TouchableOpacity>
+            {onDelete && (
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+              >
+                <Ionicons name="trash" size={16} color="#EF4444" />
+                <Text style={[styles.menuItemText, { color: '#EF4444' }]}>
+                  Verwijderen
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </TouchableOpacity>
 
-      <MissGoalModal
-        visible={showMissModal}
-        goalTitle={goal.title}
-        onConfirm={handleMissConfirm}
-        onCancel={() => setShowMissModal(false)}
-      />
+      {onMarkAsMissed && (
+        <MissGoalModal
+          visible={showMissModal}
+          goalTitle={goal.title}
+          onConfirm={handleMissConfirm}
+          onCancel={() => setShowMissModal(false)}
+        />
+      )}
     </View>
   );
 }
