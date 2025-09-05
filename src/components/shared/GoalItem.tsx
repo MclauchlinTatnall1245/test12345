@@ -38,8 +38,13 @@ const getCategoryColor = (category: string): string => {
 
 // Helper function om category label te krijgen
 const getCategoryLabel = (category: string, subcategory?: string): string => {
-  // Als er een subcategorie is, toon die
-  if (subcategory && SUBCATEGORY_LABELS[subcategory]) {
+  // Als de hoofdcategorie "other" is, toon alleen "Anders"
+  if (category === 'other') {
+    return GOAL_CATEGORY_LABELS.other;
+  }
+  
+  // Als er een subcategorie is en deze heeft een label, toon die
+  if (subcategory && subcategory.trim() !== '' && SUBCATEGORY_LABELS[subcategory]) {
     return SUBCATEGORY_LABELS[subcategory];
   }
   

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Modal,
+  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Goal, GoalCategory } from '../../types';
 import { CategorySystemHelper } from '../../lib/category-system';
 import { DataService, CategoryDetectionEngine } from '../../lib/data-service';
-import { BaseModal } from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 const GOAL_CATEGORIES: { value: GoalCategory; label: string }[] = [
   { value: 'health', label: 'Gezondheid & Fitness' },
@@ -67,6 +72,7 @@ export function GoalForm({
   targetDate, 
   editingGoal 
 }: GoalFormProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
   const [showQuickSuggestions, setShowQuickSuggestions] = useState(false);
   const [detectedCategory, setDetectedCategory] = useState<{category: GoalCategory; subcategory?: string} | null>(null);
   
@@ -167,182 +173,314 @@ export function GoalForm({
   };
 
   const handleAddQuickGoal = (suggestion: typeof QUICK_GOAL_SUGGESTIONS[0]) => {
-    // Automatische categorie detectie ook voor quick goals
-    const detectedCategory = CategoryDetectionEngine.detectCategoryAndSubcategory(
-      suggestion.title, 
-      '', 
-      suggestion.timeSlot
-    );
-
-    const newGoal: Goal = {
-      id: editingGoal?.id || DataService.generateId(),
+    // Vul de form in met de suggestie
+    setFormData(prev => ({
+      ...prev,
       title: suggestion.title,
-      description: '',
       timeSlot: suggestion.timeSlot,
-      category: detectedCategory ? detectedCategory.category : suggestion.category,
-      subcategory: detectedCategory?.subcategory,
-      completed: editingGoal?.completed || false,
-      createdAt: editingGoal?.createdAt || new Date(),
-      planDate: targetDate,
-      completedAt: editingGoal?.completedAt,
-      missed: editingGoal?.missed,
-    };
-
-    onSave(newGoal);
-    onClose();
+      category: suggestion.category,
+    }));
+    
+    // Sluit de suggesties
+    setShowQuickSuggestions(false);
+    
+    // Scroll naar boven zodat gebruiker ziet dat form is ingevuld
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, 100);
   };
 
   const isEditing = !!editingGoal;
   const modalTitle = isEditing ? 'Doel bewerken' : 'Nieuw doel toevoegen';
 
   return (
-    <BaseModal visible={visible} onClose={onClose} title={modalTitle}>
-      {/* Custom Form - Always visible */}
-      <View style={styles.formSection}>
-        <Input
-          label="Doel titel *"
-          value={formData.title}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
-          placeholder="Bijv. Voor 09:00 opstaan"
-          error={titleError}
-        />
-
-        {/* Live detectie feedback */}
-        {detectedCategory && (
-          <View style={styles.detectionFeedback}>
-            <View style={styles.detectionContent}>
-              <Text style={styles.detectionText}>
-                💡 <Text style={styles.detectionBold}>Gedetecteerd:</Text> {GOAL_CATEGORIES.find(cat => cat.value === detectedCategory.category)?.label}
-                {detectedCategory.subcategory && (
-                  <Text style={styles.detectionSubcategory}> → {CategorySystemHelper.getSubcategoryLabel(detectedCategory.subcategory) || detectedCategory.subcategory}</Text>
-                )}
-              </Text>
-              <TouchableOpacity
-                style={styles.useDetectionButton}
-                onPress={() => {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    category: detectedCategory.category,
-                    subcategory: detectedCategory.subcategory 
-                  }));
-                }}
+    <Modal visible={visible} transparent animationType="slide">
+      <LinearGradient
+        colors={['rgba(15, 23, 42, 0.6)', 'rgba(15, 23, 42, 0.8)']}
+        style={styles.overlay}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.modalContainer}>
+            {/* Premium Modal Card - exact app styling */}
+            <View style={styles.modal}>
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.98)', 'rgba(255, 255, 255, 0.95)']}
+                style={styles.modalGradient}
+              />
+              
+              {/* Premium Header - exact zoals MissGoalModal */}
+              <View style={styles.header}>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <View style={styles.closeButtonBackground}>
+                    <Ionicons name="close" size={20} color="#64748b" />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.headerText}>
+                  <Text style={styles.title}>{modalTitle}</Text>
+                  <Text style={styles.subtitle}>
+                    {isEditing ? "Pas je doel aan" : "Voeg een nieuw doel toe aan je planning"}
+                  </Text>
+                </View>
+              </View>
+              
+              <ScrollView 
+                ref={scrollViewRef}
+                style={styles.scrollView} 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.useDetectionButtonText}>Gebruik</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+                {/* Custom Form - Always visible */}
+                <View style={styles.formSection}>
+                  <Input
+                    label="Doel titel *"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
+                    placeholder="Bijv. Voor 09:00 opstaan"
+                    error={titleError}
+                  />
 
-        <Input
-          label="Beschrijving (optioneel)"
-          value={formData.description}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
-          placeholder="Extra details over je doel"
-          multiline
-          style={styles.textArea}
-        />
+                  {/* Live detectie feedback */}
+                  {detectedCategory && (
+                    <View style={styles.detectionFeedback}>
+                      <View style={styles.detectionContent}>
+                        <Text style={styles.detectionText}>
+                          💡 <Text style={styles.detectionBold}>Gedetecteerd:</Text> {GOAL_CATEGORIES.find(cat => cat.value === detectedCategory.category)?.label}
+                          {detectedCategory.subcategory && (
+                            <Text style={styles.detectionSubcategory}> → {CategorySystemHelper.getSubcategoryLabel(detectedCategory.subcategory) || detectedCategory.subcategory}</Text>
+                          )}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.useDetectionButton}
+                          onPress={() => {
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              category: detectedCategory.category,
+                              subcategory: detectedCategory.subcategory 
+                            }));
+                          }}
+                        >
+                          <Text style={styles.useDetectionButtonText}>Gebruik</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
 
-        <Input
-          label="Tijdslot (optioneel)"
-          value={formData.timeSlot}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, timeSlot: text }))}
-          placeholder="Bijv. 09:00-10:00 of voor 11:00"
-        />
+                  <Input
+                    label="Beschrijving (optioneel)"
+                    value={formData.description}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+                    placeholder="Extra details over je doel"
+                    multiline
+                    style={styles.textArea}
+                  />
 
-        {/* Category Selection */}
-        <Select
-          label="Categorie"
-          value={formData.category}
-          options={GOAL_CATEGORIES.map(cat => ({ value: cat.value, label: cat.label }))}
-          onSelect={(value) => setFormData(prev => ({ 
-            ...prev, 
-            category: value as GoalCategory,
-            subcategory: undefined // Reset subcategory when main category changes
-          }))}
-        />
+                  <Input
+                    label="Tijdslot (optioneel)"
+                    value={formData.timeSlot}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, timeSlot: text }))}
+                    placeholder="Bijv. 09:00-10:00 of voor 11:00"
+                  />
 
-        {/* Subcategorie selectie */}
-        {availableSubcategories.length > 0 && (
-          <Select
-            label="Subcategorie (optioneel)"
-            value={formData.subcategory || ''}
-            options={[
-              { value: '', label: 'Geen specifieke subcategorie' },
-              ...availableSubcategories.map(sub => ({
-                value: sub,
-                label: CategorySystemHelper.getSubcategoryLabel(sub) || sub
-              }))
-            ]}
-            onSelect={(value) => setFormData(prev => ({ 
-              ...prev, 
-              subcategory: value || undefined 
-            }))}
-          />
-        )}
+                  {/* Category Selection */}
+                  <Select
+                    label="Categorie"
+                    value={formData.category}
+                    options={GOAL_CATEGORIES.map(cat => ({ value: cat.value, label: cat.label }))}
+                    onSelect={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      category: value as GoalCategory,
+                      subcategory: undefined // Reset subcategory when main category changes
+                    }))}
+                  />
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <Button
-            title={isEditing ? "Wijzigingen opslaan" : "Doel toevoegen"}
-            onPress={handleSubmit}
-            disabled={!formData.title.trim()}
-            style={styles.submitButton}
-          />
-          <Button
-            title="Annuleren"
-            onPress={onClose}
-            variant="outline"
-            style={styles.cancelButton}
-          />
-        </View>
-      </View>
+                  {/* Subcategorie selectie */}
+                  {availableSubcategories.length > 0 && (
+                    <Select
+                      label="Subcategorie (optioneel)"
+                      value={formData.subcategory || ''}
+                      options={[
+                        { value: '', label: 'Geen specifieke subcategorie' },
+                        ...availableSubcategories.map(sub => ({
+                          value: sub,
+                          label: CategorySystemHelper.getSubcategoryLabel(sub) || sub
+                        }))
+                      ]}
+                      onSelect={(value) => setFormData(prev => ({ 
+                        ...prev, 
+                        subcategory: value || undefined 
+                      }))}
+                    />
+                  )}
 
-      {/* Quick Suggestions - Only for new goals */}
-      {!isEditing && (
-        <View style={styles.suggestionsSection}>
-          <TouchableOpacity
-            style={styles.suggestionsToggle}
-            onPress={() => setShowQuickSuggestions(!showQuickSuggestions)}
-          >
-            <Text style={styles.suggestionsToggleText}>Snelle suggesties</Text>
-            <Ionicons 
-              name={showQuickSuggestions ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#3B82F6" 
-            />
-          </TouchableOpacity>
+                  {/* Action Buttons */}
+                  <View style={styles.actionButtons}>
+                    <Button
+                      title="Annuleren"
+                      onPress={onClose}
+                      variant="outline"
+                      style={styles.cancelButton}
+                    />
+                    <Button
+                      title={isEditing ? "Wijzigingen opslaan" : "Doel toevoegen"}
+                      onPress={handleSubmit}
+                      disabled={!formData.title.trim()}
+                      style={styles.submitButton}
+                    />
+                  </View>
+                </View>
 
-          {showQuickSuggestions && (
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Snelle doelen:</Text>
-              {QUICK_GOAL_SUGGESTIONS.map((suggestion, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestionItem}
-                  onPress={() => handleAddQuickGoal(suggestion)}
-                >
-                  <View style={styles.suggestionContent}>
-                    <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
-                    {suggestion.timeSlot && (
-                      <Text style={styles.suggestionTime}>⏰ {suggestion.timeSlot}</Text>
+                {/* Quick Suggestions - Only for new goals */}
+                {!isEditing && (
+                  <View style={styles.suggestionsSection}>
+                    <TouchableOpacity
+                      style={styles.suggestionsToggle}
+                      onPress={() => setShowQuickSuggestions(!showQuickSuggestions)}
+                    >
+                      <Text style={styles.suggestionsToggleText}>Snelle suggesties</Text>
+                      <Ionicons 
+                        name={showQuickSuggestions ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color="#3B82F6" 
+                      />
+                    </TouchableOpacity>
+
+                    {showQuickSuggestions && (
+                      <View style={styles.suggestionsContainer}>
+                        <Text style={styles.suggestionsTitle}>Snelle doelen:</Text>
+                        {QUICK_GOAL_SUGGESTIONS.map((suggestion, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.suggestionItem}
+                            onPress={() => handleAddQuickGoal(suggestion)}
+                          >
+                            <View style={styles.suggestionContent}>
+                              <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                              {suggestion.timeSlot && (
+                                <Text style={styles.suggestionTime}>⏰ {suggestion.timeSlot}</Text>
+                              )}
+                              <Text style={styles.suggestionCategory}>
+                                {GOAL_CATEGORIES.find(cat => cat.value === suggestion.category)?.label}
+                              </Text>
+                            </View>
+                            <View style={styles.suggestionAction}>
+                              <Ionicons name="add-circle" size={24} color="#667eea" />
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     )}
                   </View>
-                  <Text style={styles.suggestionCategory}>
-                    {GOAL_CATEGORIES.find(cat => cat.value === suggestion.category)?.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                )}
+              </ScrollView>
             </View>
-          )}
-        </View>
-      )}
-    </BaseModal>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    </Modal>
   );
-}
+}const styles = StyleSheet.create({
+  // Modal structure - exact zoals MissGoalModal
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  safeArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 8,
+  },
+  modal: {
+    borderRadius: 32,
+    height: screenHeight * 0.85,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: 'rgba(99, 102, 241, 0.25)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'transparent',
+  },
+  modalGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  
+  // Premium Header - exact zoals MissGoalModal
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.8)',
+    position: 'relative',
+    zIndex: 2,
+    backgroundColor: 'transparent',
+  },
+  closeButton: {
+    marginRight: 16,
+    padding: 4,
+  },
+  closeButtonBackground: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(100, 116, 139, 0.12)',
+  },
+  headerText: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+    flexShrink: 1,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+    flexShrink: 1,
+  },
 
-const styles = StyleSheet.create({
+  // ScrollView styling
+  scrollView: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    position: 'relative',
+    zIndex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
+
+  // Form content styles
   formSection: {
     marginBottom: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    position: 'relative',
+    zIndex: 1,
   },
   textArea: {
     minHeight: 80,
@@ -399,66 +537,97 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   suggestionsSection: {
-    marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    marginTop: 32,
+    paddingHorizontal: 24,
   },
   suggestionsToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    shadowColor: 'rgba(99, 102, 241, 0.15)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: '#3B82F6',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 8,
   },
   suggestionsToggleText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#3B82F6',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.4,
   },
   suggestionsContainer: {
     marginTop: 16,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 24,
+    shadowColor: 'rgba(99, 102, 241, 0.12)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
   },
   suggestionsTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 20,
+    letterSpacing: -0.3,
+    textAlign: 'center',
   },
   suggestionItem: {
-    backgroundColor: '#EFF6FF',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 8,
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   suggestionContent: {
     flex: 1,
   },
+  suggestionAction: {
+    marginLeft: 12,
+    padding: 4,
+  },
   suggestionTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   suggestionTime: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
+    fontWeight: '500',
   },
   suggestionCategory: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#3B82F6',
-    backgroundColor: '#DBEAFE',
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#667eea',
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(102, 126, 234, 0.2)',
   },
 });

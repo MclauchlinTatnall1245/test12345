@@ -14,14 +14,13 @@ export type GoalCategory =
   | 'other';
 
 export type MissedReason = 
-  | 'no_motivation' // geen zin
-  | 'too_tired' // te moe
   | 'no_time' // geen tijd
+  | 'no_energy' // geen energie
   | 'forgot' // vergeten
-  | 'unexpected' // onverwachte omstandigheden
-  | 'too_difficult' // te moeilijk/te hoog gegrepen
-  | 'distraction' // afgeleid
-  | 'wrong_goal' // foutief/per ongeluk toegevoegd
+  | 'planning_changed' // planning veranderd
+  | 'circumstances' // omstandigheden
+  | 'too_difficult' // te moeilijk
+  | 'wrong_goal' // verkeerd doel
   | 'other';
 
 // Category labels for display
@@ -40,14 +39,13 @@ export const GOAL_CATEGORY_LABELS: Record<GoalCategory, string> = {
 
 // Missed reason labels for display
 export const MISSED_REASON_LABELS: Record<MissedReason, string> = {
-  no_motivation: 'Geen zin/motivatie',
-  too_tired: 'Te moe',
   no_time: 'Geen tijd',
+  no_energy: 'Geen energie',
   forgot: 'Vergeten',
-  unexpected: 'Onverwachte omstandigheden',
-  too_difficult: 'Te moeilijk/hoog gegrepen',
-  distraction: 'Afgeleid',
-  wrong_goal: 'Per ongeluk/foutief toegevoegd',
+  planning_changed: 'Planning veranderd',
+  circumstances: 'Omstandigheden',
+  too_difficult: 'Te moeilijk',
+  wrong_goal: 'Verkeerd doel',
   other: 'Anders'
 };
 

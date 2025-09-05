@@ -24,43 +24,25 @@ export function MissGoalDropdown({ goalId, goalTitle, onConfirm, onCancel }: Mis
   const [notes, setNotes] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const missedReasons: { value: MissedReason; label: string; description: string }[] = [
-    { 
-      value: 'no_time', 
-      label: 'Geen tijd gehad', 
-      description: 'Er was gewoon niet genoeg tijd voor dit doel' 
-    },
-    { 
-      value: 'forgot', 
-      label: 'Vergeten', 
-      description: 'Het is me gewoon ontschoten vandaag' 
-    },
-    { 
-      value: 'no_motivation', 
-      label: 'Geen zin/motivatie', 
-      description: 'Had er vandaag geen energie voor' 
-    },
-    { 
-      value: 'unexpected', 
-      label: 'Onverwachte omstandigheden', 
-      description: 'Externe factoren maakten het onmogelijk' 
-    },
-    { 
-      value: 'too_tired', 
-      label: 'Te moe', 
-      description: 'Was te uitgeput om dit te doen' 
-    },
-    { 
-      value: 'distraction', 
-      label: 'Afgeleid', 
-      description: 'Andere zaken trokken mijn aandacht' 
-    },
-    { 
-      value: 'wrong_goal', 
-      label: 'Verkeerd doel', 
-      description: 'Dit doel hoort hier niet, verwijder het' 
-    },
-  ];
+  // Beschrijvingen voor elke reden
+  const reasonDescriptions: Record<MissedReason, string> = {
+    no_time: 'Er was gewoon niet genoeg tijd voor dit doel',
+    no_energy: 'Had er vandaag geen energie of zin voor',
+    forgot: 'Het is me gewoon ontschoten vandaag',
+    planning_changed: 'Mijn planning of agenda werd omgegooid',
+    circumstances: 'Externe factoren maakten het onmogelijk',
+    too_difficult: 'Dit doel bleek moeilijker dan verwacht',
+    wrong_goal: 'Dit doel hoort hier niet, verwijder het',
+    other: 'Een andere reden (uitleg hieronder)'
+  };
+
+  // Gebruik de centrale definitie voor consistent gedrag
+  const missedReasons: { value: MissedReason; label: string; description: string }[] = 
+    CategorySystemHelper.getAllMissedReasons().map(([value, label]) => ({
+      value,
+      label,
+      description: reasonDescriptions[value]
+    }));
 
   const handleSubmit = () => {
     if (!selectedReason) return;
