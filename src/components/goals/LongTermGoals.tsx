@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { DataService } from '../../lib/data-service';
 import TimeService from '../../lib/time-service';
 
 export default function LongTermGoalsComponent() {
+  const scrollViewRef = useRef<ScrollView>(null);
   const [goals, setGoals] = useState<LongTermGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -168,7 +169,7 @@ export default function LongTermGoalsComponent() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Langetermijn Doelen</Text>
@@ -231,6 +232,7 @@ export default function LongTermGoalsComponent() {
                   value={newGoal.title}
                   onChangeText={(text) => setNewGoal({ ...newGoal, title: text })}
                   style={styles.formInput}
+                  scrollViewRef={scrollViewRef}
                 />
               </View>
 
@@ -253,6 +255,7 @@ export default function LongTermGoalsComponent() {
                   value={newGoal.targetDate}
                   onChangeText={(text) => setNewGoal({ ...newGoal, targetDate: text })}
                   style={styles.formInput}
+                  scrollViewRef={scrollViewRef}
                 />
               </View>
 

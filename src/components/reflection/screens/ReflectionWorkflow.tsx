@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Goal, GoalReflection, MissedReason } from '../../../types';
 import { MISSED_REASON_LABELS } from '../../../lib/category-system';
 import { Card, CardContent } from '../../ui/Card';
+import Input from '../../ui/Input';
 import TimeService from '../../../lib/time-service';
 
 interface ReflectionWorkflowProps {
@@ -44,6 +45,7 @@ export function ReflectionWorkflow({
   onOverallFeelingChange,
   onGeneralNotesChange,
 }: ReflectionWorkflowProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
   const [feedback, setFeedback] = useState('');
   const [selectedReason, setSelectedReason] = useState<MissedReason | null>(null);
   const [customReason, setCustomReason] = useState('');
@@ -184,7 +186,7 @@ export function ReflectionWorkflow({
   // Overall Reflection Screen (after all goals)
   if (showOverallReflection) {
     return (
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Modern Hero */}
         <View style={styles.heroContainer}>
           <View style={styles.heroHeader}>
@@ -257,13 +259,13 @@ export function ReflectionWorkflow({
               Is er nog iets wat je wilt noteren over je dag?
             </Text>
             
-            <TextInput
-              style={styles.textInput}
+            <Input
               multiline
               placeholder="Bijv. wat je hebt geleerd, plannen voor morgen, bijzondere gebeurtenissen..."
               value={generalNotes || ''}
               onChangeText={(text) => onGeneralNotesChange?.(text)}
-              placeholderTextColor="#9CA3AF"
+              style={styles.textInput}
+              scrollViewRef={scrollViewRef}
             />
           </CardContent>
         </Card>
@@ -341,7 +343,7 @@ export function ReflectionWorkflow({
   const categoryInfo = getCategoryInfo(currentGoal.category);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollViewRef} style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header with Progress */}
       <View style={styles.heroContainer}>
         <View style={styles.heroHeader}>
@@ -460,13 +462,13 @@ export function ReflectionWorkflow({
             Deel je ervaringen, wat je hebt geleerd, of hoe je je voelde.
           </Text>
           
-          <TextInput
-            style={styles.textInput}
+          <Input
             multiline
             placeholder="Typ hier je reflectie..."
             value={currentReflection?.feedback || ''}
             onChangeText={handleFeedbackChange}
-            placeholderTextColor="#9CA3AF"
+            style={styles.textInput}
+            scrollViewRef={scrollViewRef}
           />
         </CardContent>
       </Card>
@@ -511,8 +513,7 @@ export function ReflectionWorkflow({
 
             {/* Custom reason input if "Anders" is selected */}
             {selectedReason === 'other' && (
-              <TextInput
-                style={[styles.textInput, { marginTop: 16 }]}
+              <Input
                 multiline
                 placeholder="Beschrijf de reden..."
                 value={customReason}
@@ -520,7 +521,8 @@ export function ReflectionWorkflow({
                   setCustomReason(text);
                   handleReasonChange('other', text);
                 }}
-                placeholderTextColor="#9CA3AF"
+                style={[styles.textInput, { marginTop: 16 }]}
+                scrollViewRef={scrollViewRef}
               />
             )}
           </CardContent>

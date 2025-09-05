@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Alert,
   Dimensions,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +29,7 @@ interface MissGoalModalProps {
 }
 
 export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissGoalModalProps) {
+  const scrollViewRef = useRef<ScrollView>(null);
   const [selectedReason, setSelectedReason] = useState<MissedReason | ''>('');
   const [notes, setNotes] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -141,6 +144,7 @@ export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissG
                     placeholder="Waarom verwijder je dit doel?"
                     multiline
                     style={styles.notesInput}
+                    scrollViewRef={scrollViewRef}
                   />
                 </View>
 
@@ -168,13 +172,17 @@ export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissG
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" presentationStyle="overFullScreen">
       <LinearGradient
         colors={['rgba(15, 23, 42, 0.6)', 'rgba(15, 23, 42, 0.8)']}
         style={styles.overlay}
       >
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.modalContainer}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
+          >
+            <View style={styles.modalContainer}>
             {/* Premium Modal Card - exact app styling */}
             <View style={styles.modal}>
               <LinearGradient
@@ -199,9 +207,12 @@ export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissG
               </View>
               
               <ScrollView 
+                ref={scrollViewRef}
                 style={styles.scrollView} 
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
               >
 
                 {/* Description card - exact app styling */}
@@ -285,6 +296,7 @@ export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissG
                       placeholder="Bijv. specifieke omstandigheden, wat je volgende keer anders zou doen..."
                       multiline
                       style={styles.notesInput}
+                      scrollViewRef={scrollViewRef}
                     />
                   </View>
                 )}
@@ -308,6 +320,7 @@ export function MissGoalModal({ visible, goalTitle, onConfirm, onCancel }: MissG
               </View>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </LinearGradient>
     </Modal>
@@ -321,6 +334,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   safeArea: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  keyboardAvoidingView: {
     flex: 1,
     justifyContent: 'center',
   },

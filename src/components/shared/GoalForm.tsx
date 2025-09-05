@@ -238,6 +238,7 @@ export function GoalForm({
                     onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
                     placeholder="Bijv. Voor 09:00 opstaan"
                     error={titleError}
+                    scrollViewRef={scrollViewRef}
                   />
 
                   {/* Live detectie feedback */}
@@ -273,6 +274,7 @@ export function GoalForm({
                     placeholder="Extra details over je doel"
                     multiline
                     style={styles.textArea}
+                    scrollViewRef={scrollViewRef}
                   />
 
                   <Input
@@ -280,6 +282,7 @@ export function GoalForm({
                     value={formData.timeSlot}
                     onChangeText={(text) => setFormData(prev => ({ ...prev, timeSlot: text }))}
                     placeholder="Bijv. 09:00-10:00 of voor 11:00"
+                    scrollViewRef={scrollViewRef}
                   />
 
                   {/* Category Selection */}
