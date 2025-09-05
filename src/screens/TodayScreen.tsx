@@ -86,8 +86,40 @@ export default function TodayScreen() {
     }
   }, [refreshGoals]);
 
-  const completedGoals = goals.filter(goal => goal.completed);
-  const pendingGoals = goals.filter(goal => !goal.completed && !goal.missed);
+  const completedGoals = goals
+    .filter(goal => goal.completed)
+    .sort((a, b) => {
+      // Sorteer op completedAt datum, waarbij de meest recente bovenaan komt
+      // Als completedAt niet bestaat, gebruik dan de createdAt als fallback
+      const dateA = a.completedAt || a.createdAt;
+      const dateB = b.completedAt || b.createdAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  
+  const pendingGoals = goals
+    .filter(goal => !goal.completed && !goal.missed)
+    .sort((a, b) => {
+      // Helper functie om tijd uit timeSlot te extraheren
+      const parseTime = (timeSlot: string | undefined): number => {
+        if (!timeSlot) return 9999; // Doelen zonder tijd komen onderaan
+        
+        // Extract tijd uit verschillende formaten zoals "09:00", "voor 09:00", "09:00-10:00"
+        const timeMatch = timeSlot.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) {
+          const hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2]);
+          return hours * 60 + minutes; // Converteer naar minuten sinds middernacht
+        }
+        
+        return 9999; // Als geen tijd gevonden, naar beneden
+      };
+      
+      const timeA = parseTime(a.timeSlot);
+      const timeB = parseTime(b.timeSlot);
+      
+      return timeA - timeB; // Sorteer van vroeg naar laat
+    });
+  
   const missedGoals = goals.filter(goal => goal.missed);
 
   const remainingGoals = pendingGoals.length;
