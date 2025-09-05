@@ -24,6 +24,7 @@ import { EveningReflectionCTA } from '../components/shared/EveningReflectionCTA'
 import { useTodayGoals } from '../hooks/useTodayGoals';
 import { Goal, MissedReason } from '../types';
 import type { RootTabParamList } from '../navigation/AppNavigator';
+import TimeService from '../lib/time-service';
 
 type TodayScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Today'>;
 
@@ -184,11 +185,7 @@ export default function TodayScreen() {
             <View style={styles.heroTextContainer}>
               <Text style={styles.heroTitle}>Vandaag</Text>
               <Text style={styles.heroSubtitle}>
-                {new Date(todayDate).toLocaleDateString('nl-NL', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long' 
-                })}
+                {TimeService.formatDate(todayDate)}
               </Text>
             </View>
           </View>

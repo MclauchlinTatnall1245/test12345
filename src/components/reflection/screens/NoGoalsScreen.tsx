@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Reflection } from '../../../types';
 import { Card, CardContent } from '../../ui/Card';
 import { HistoryView } from './HistoryView';
+import TimeService from '../../../lib/time-service';
 
 interface NoGoalsScreenProps {
   today: string;
@@ -23,25 +24,6 @@ export function NoGoalsScreen({
   onSelectHistoryReflection,
 }: NoGoalsScreenProps) {
   const [showHistory, setShowHistory] = useState(false);
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Vandaag';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Gisteren';
-    } else {
-      return date.toLocaleDateString('nl-NL', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-      });
-    }
-  };
 
   if (showHistory) {
     return (
@@ -79,7 +61,7 @@ export function NoGoalsScreen({
           </View>
           <View style={styles.heroTextContainer}>
             <Text style={styles.heroTitle}>Geen Doelen</Text>
-            <Text style={styles.heroSubtitle}>{formatDate(today)}</Text>
+            <Text style={styles.heroSubtitle}>{TimeService.formatRelativeDate(today)}</Text>
           </View>
         </View>
       </View>
@@ -90,7 +72,7 @@ export function NoGoalsScreen({
           <View style={styles.messageHeader}>
             <Ionicons name="information-circle-outline" size={32} color="#F59E0B" />
             <Text style={styles.messageTitle}>
-              Geen doelen gepland voor {formatDate(today)}
+              Geen doelen gepland voor {TimeService.formatRelativeDate(today)}
             </Text>
           </View>
           

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DataService } from '../lib/data-service';
 import { Goal, Reflection, GoalReflection } from '../types';
+import TimeService from '../lib/time-service';
 
 export function useReflectionData() {
   const [todayGoals, setTodayGoals] = useState<Goal[]>([]);
@@ -15,7 +16,7 @@ export function useReflectionData() {
   const [overallFeeling, setOverallFeeling] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
   const [generalNotes, setGeneralNotes] = useState<string>('');
   
-  const today = new Date().toISOString().split('T')[0];
+  const today = TimeService.getCurrentDate();
   
   useEffect(() => {
     loadTodayGoals();

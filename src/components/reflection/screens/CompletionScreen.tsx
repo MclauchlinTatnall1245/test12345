@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Reflection } from '../../../types';
 import { Card, CardContent } from '../../ui/Card';
+import TimeService from '../../../lib/time-service';
 
 interface CompletionScreenProps {
   today: string;
@@ -20,25 +21,6 @@ export function CompletionScreen({
   onEditReflection,
   onPlanTomorrow,
 }: CompletionScreenProps) {
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Vandaag';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Gisteren';
-    } else {
-      return date.toLocaleDateString('nl-NL', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-      });
-    }
-  };
-
   const getMotivationalMessage = (completionRate: number) => {
     if (completionRate >= 90) {
       return {
@@ -96,7 +78,7 @@ export function CompletionScreen({
             <Text style={styles.heroMessage}>{motivation.message}</Text>
             
             <View style={styles.completionBadge}>
-              <Text style={styles.completionLabel}>Reflectie voltooid voor {formatDate(today)}</Text>
+              <Text style={styles.completionLabel}>Reflectie voltooid voor {TimeService.formatRelativeDate(today)}</Text>
               <Text style={styles.completionPercentage}>{savedReflection.completionPercentage}% behaald</Text>
             </View>
           </View>

@@ -17,6 +17,7 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import { LongTermGoal, GOAL_CATEGORIES } from '../../types';
 import { DataService } from '../../lib/data-service';
+import TimeService from '../../lib/time-service';
 
 export default function LongTermGoalsComponent() {
   const [goals, setGoals] = useState<LongTermGoal[]>([]);
@@ -436,7 +437,7 @@ function GoalCard({
             <View style={styles.deadlineContainer}>
               <Text style={styles.deadlineLabel}>Deadline:</Text>
               <Text style={styles.deadlineText}>
-                {goal.targetDate.toLocaleDateString('nl-NL')}
+                {TimeService.formatDate(goal.targetDate.toISOString().split('T')[0])}
               </Text>
             </View>
           )}

@@ -265,67 +265,16 @@ export class DataService {
 
   // === PLANNING METHODS ===
   static getActualTodayDate(): string {
-    return TimeService.getCurrentDate();
+    return TimeService.getActualTodayDate();
   }
 
   static getSmartPlanningDate(): string {
-    const currentHour = TimeService.getCurrentHour();
-    const config = TimeService.getConfig();
-    
-    // Get the smart "today" date (sync fallback)
-    const smartToday = this.getSmartTodayDate();
-    
-    // Tussen nightModeStartHour en nightModeEndHour: plan voor "vandaag" (huidige kalenderdag)
-    // Anders: plan voor "morgen" (volgende kalenderdag)
-    if (currentHour >= config.nightModeStartHour && currentHour < config.nightModeEndHour) {
-      // Night mode: check of smart today afwijkt van echte dag
-      const actualToday = this.getActualTodayDate();
-      if (smartToday !== actualToday) {
-        return actualToday; // Plan voor de echte kalenderdag
-      }
-      return smartToday; // Plan voor dezelfde dag als smart today
-    } else {
-      // Normale planning: morgen na de smart today datum
-      const tomorrow = new Date(smartToday);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      // Gebruik lokale datum, niet UTC
-      const year = tomorrow.getFullYear();
-      const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-      const day = String(tomorrow.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
+    return TimeService.getSmartPlanningDate();
   }
 
   // Async versie die accurater is
   static async getSmartPlanningDateAsync(): Promise<string> {
-    const currentHour = TimeService.getCurrentHour();
-    const config = TimeService.getConfig();
-    
-    // Get the smart "today" date
-    const smartToday = await this.getSmartTodayDateAsync();
-    
-    // Tussen nightModeStartHour en nightModeEndHour: plan voor "vandaag" (huidige kalenderdag)
-    // Anders: plan voor "morgen" (volgende kalenderdag)
-    if (currentHour >= config.nightModeStartHour && currentHour < config.nightModeEndHour) {
-      // Als smart today gisteren is (omdat we nog doelen hebben van gisteren),
-      // dan plannen we voor vandaag (kalenderdag)
-      const actualToday = this.getActualTodayDate();
-      if (smartToday !== actualToday) {
-        return actualToday; // Plan voor de echte kalenderdag
-      }
-      return smartToday; // Plan voor dezelfde dag als smart today
-    } else {
-      // Normale planning: morgen na de smart today datum
-      const tomorrow = new Date(smartToday);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      // Gebruik lokale datum, niet UTC
-      const year = tomorrow.getFullYear();
-      const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-      const day = String(tomorrow.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
+    return await TimeService.getSmartPlanningDateAsync(this);
   }
 
   // Slimme "vandaag" datum die rekening houdt met slaap-cycli
@@ -341,12 +290,7 @@ export class DataService {
   }
 
   static formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('nl-NL', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    return TimeService.formatDateWithYear(date);
   }
 
   // Legacy support voor getDateLogicInfo - gebruik nu TimeService
@@ -357,30 +301,7 @@ export class DataService {
     currentHour: number;
     explanation: string;
   } {
-    const currentHour = TimeService.getCurrentHour();
-    const config = TimeService.getConfig();
-    const actualToday = this.getActualTodayDate();
-    const smartToday = this.getSmartTodayDate();
-    const planningDate = this.getSmartPlanningDate();
-    
-    let explanation = '';
-    if (currentHour >= config.nightModeStartHour && currentHour < config.nightModeEndHour) {
-      if (smartToday !== actualToday) {
-        explanation = `Het is ${currentHour}:xx 's nachts. Planning voor de echte kalenderdag (${actualToday}).`;
-      } else {
-        explanation = `Het is ${currentHour}:xx 's nachts. Planning voor vandaag (${smartToday}).`;
-      }
-    } else {
-      explanation = `Het is ${currentHour}:xx. Planning voor morgen (${planningDate}).`;
-    }
-    
-    return {
-      actualToday,
-      smartToday,
-      planningDate,
-      currentHour,
-      explanation
-    };
+    return TimeService.getDateLogicInfo();
   }
 }
 
@@ -439,15 +360,27 @@ export class SuggestionEngine {
 
   // TimeService integration helpers
   static getUnreflectedDays(): string[] {
-    return TimeService.getUnreflectedDays(this);
+    return TimeService.getUnreflectedDays(DataService);
+  }
+
+  static async getUnreflectedDaysAsync(): Promise<string[]> {
+    return await TimeService.getUnreflectedDaysAsync(DataService);
   }
 
   static hasUnreflectedDays(): boolean {
-    return TimeService.hasUnreflectedDays(this);
+    return TimeService.hasUnreflectedDays(DataService);
+  }
+
+  static async hasUnreflectedDaysAsync(): Promise<boolean> {
+    return await TimeService.hasUnreflectedDaysAsync(DataService);
   }
 
   static getTimeDebugInfo(): object {
-    return TimeService.getDebugInfo(this);
+    return TimeService.getDebugInfo(DataService);
+  }
+
+  static async getTimeDebugInfoAsync(): Promise<object> {
+    return await TimeService.getDebugInfoAsync(DataService);
   }
 
   // ==========================================

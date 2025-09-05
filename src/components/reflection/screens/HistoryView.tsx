@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card, CardContent } from '../../ui/Card';
 import { Reflection } from '../../../types';
 import { DataService } from '../../../lib/data-service';
+import TimeService from '../../../lib/time-service';
 
 interface HistoryViewProps {
   allReflections: Reflection[];
@@ -26,33 +27,6 @@ export function HistoryView({
   onSelectReflection,
   onBackToStart
 }: HistoryViewProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Vandaag';
-    }
-    
-    if (date.toDateString() === yesterday.toDateString()) {
-      return 'Gisteren';
-    }
-    
-    return date.toLocaleDateString('nl-NL', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    });
-  };
-
-  const getSuccessColor = (percentage: number) => {
-    if (percentage >= 80) return '#10B981'; // green
-    if (percentage >= 50) return '#F59E0B'; // yellow
-    return '#EF4444'; // red
-  };
-
   if (allReflections.length === 0) {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -149,7 +123,7 @@ export function HistoryView({
                 <View style={styles.reflectionHeader}>
                   <View style={styles.reflectionHeaderLeft}>
                     <Text style={styles.reflectionDate}>
-                      {formatDate(reflection.date)}
+                      {TimeService.formatRelativeDate(reflection.date)}
                     </Text>
                     <Text style={styles.reflectionStats}>
                       {reflection.totalGoals} doelen • {reflection.completedGoals} behaald
@@ -158,7 +132,7 @@ export function HistoryView({
                   <View style={styles.reflectionHeaderRight}>
                     <Text style={[
                       styles.successRate,
-                      { color: getSuccessColor(reflection.completionPercentage) }
+                      { color: TimeService.getSuccessColor(reflection.completionPercentage) }
                     ]}>
                       {reflection.completionPercentage}%
                     </Text>

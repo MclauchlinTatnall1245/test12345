@@ -34,6 +34,7 @@ export function EveningReflectionCTA({
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [hasReflection, setHasReflection] = useState<boolean>(false);
   const [smartDate, setSmartDate] = useState<string>('');
+  const [timeMessage, setTimeMessage] = useState<string>('');
 
   // Functie om de smart date te bepalen
   const determineSmartDate = async () => {
@@ -70,24 +71,69 @@ export function EveningReflectionCTA({
     }
   };
 
+  // Functie om het tijd-message te bepalen
+  const updateTimeMessage = async () => {
+    // Als we de smart date nog niet hebben, gebruik fallback
+    if (!smartDate) {
+      setTimeMessage("Doelen aan het laden...");
+      return;
+    }
+
+    if (hasReflection) {
+      const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+      setTimeMessage(`Je hebt al gereflecteerd op vandaag (${completionPercentage}% voltooid).`);
+      return;
+    }
+    
+    const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+    
+    // Early morning (0-6): subtiele boodschap
+    const isEarlyMorning = timeCategory === 'night' && currentTime.getHours() >= 0 && currentTime.getHours() < 6;
+    
+    if (isEarlyMorning) {
+      setTimeMessage("De nieuwe dag is begonnen. Vanavond kun je weer reflecteren.");
+    } else if (timeCategory === 'night') {
+      setTimeMessage(`Het is al laat! Reflecteer op je dag (${completionPercentage}% voltooid) voordat je gaat slapen.`);
+    } else if (timeCategory === 'evening') {
+      setTimeMessage(`Het wordt tijd om je dag af te sluiten. Je hebt ${completionPercentage}% van je doelen behaald.`);
+    } else if (isReflectionTime) {
+      setTimeMessage(`De avond is begonnen - reflecteer op je dag met ${completionPercentage}% voltooiing.`);
+    } else if (isAlmostReflectionTime) {
+      setTimeMessage(`De avond komt eraan - bereid je voor op reflectie (${completionPercentage}% voltooid).`);
+    } else {
+      setTimeMessage("Later vandaag kun je reflecteren op je dag.");
+    }
+  };
+
   useEffect(() => {
     // Update tijd elke minuut
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
 
-    // Check reflectie status bij component mount
-    checkReflection();
+    // Check reflectie status en update message bij component mount
+    checkReflection().then(() => {
+      updateTimeMessage();
+    });
 
     return () => clearInterval(interval);
   }, [totalGoals, completedGoals]);
 
-  // Effect om reflectie status te vernieuwen als refreshTrigger verandert
+  // Effect om reflectie status en message te vernieuwen als refreshTrigger verandert
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
-      checkReflection();
+      checkReflection().then(() => {
+        updateTimeMessage();
+      });
     }
   }, [refreshTrigger]);
+
+  // Effect om message te updaten als doelen of smartDate verandert
+  useEffect(() => {
+    if (smartDate) {
+      updateTimeMessage();
+    }
+  }, [totalGoals, completedGoals, smartDate, hasReflection]);
 
   const isReflectionTime = TimeService.isReflectionTime();
   const isAlmostReflectionTime = TimeService.isAlmostReflectionTime();
@@ -101,37 +147,6 @@ export function EveningReflectionCTA({
   const showProminentVersion = !isEarlyMorning && (isReflectionTime || isAlmostReflectionTime || timeCategory === 'evening' || timeCategory === 'night') && !hasReflection;
   
   const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
-
-  const getTimeMessage = () => {
-    // Als we de smart date nog niet hebben, gebruik fallback
-    if (!smartDate) {
-      return "Doelen aan het laden...";
-    }
-
-    if (hasReflection) {
-      const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
-      return `Je hebt al gereflecteerd op vandaag (${completionPercentage}% voltooid).`;
-    }
-    
-    const completionPercentage = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
-    
-    // Early morning (0-6): subtiele boodschap
-    const isEarlyMorning = timeCategory === 'night' && currentTime.getHours() >= 0 && currentTime.getHours() < 6;
-    
-    if (isEarlyMorning) {
-      return "De nieuwe dag is begonnen. Vanavond kun je weer reflecteren.";
-    } else if (timeCategory === 'night') {
-      return `Het is al laat! Reflecteer op je dag (${completionPercentage}% voltooid) voordat je gaat slapen.`;
-    } else if (timeCategory === 'evening') {
-      return `Het wordt tijd om je dag af te sluiten. Je hebt ${completionPercentage}% van je doelen behaald.`;
-    } else if (isReflectionTime) {
-      return `De avond is begonnen - reflecteer op je dag met ${completionPercentage}% voltooiing.`;
-    } else if (isAlmostReflectionTime) {
-      return `De avond komt eraan - bereid je voor op reflectie (${completionPercentage}% voltooid).`;
-    } else {
-      return "Later vandaag kun je reflecteren op je dag.";
-    }
-  };
 
   const handleStartReflection = () => {
     if (onStartReflection) {
@@ -203,7 +218,7 @@ export function EveningReflectionCTA({
             <View style={styles.subtleTextContainer}>
               <Text style={styles.subtleTitle}>Avond reflectie</Text>
               <Text style={styles.subtleMessage}>
-                {hasReflection ? 'Reflectie opgeslagen' : getTimeMessage()}
+                {hasReflection ? 'Reflectie opgeslagen' : timeMessage}
               </Text>
             </View>
             <TouchableOpacity
@@ -302,7 +317,7 @@ export function EveningReflectionCTA({
             styles.prominentMessage,
             { color: '#64748b' }
           ]}>
-            {getTimeMessage()}
+            {timeMessage}
           </Text>
 
           {/* Progress indicator */}

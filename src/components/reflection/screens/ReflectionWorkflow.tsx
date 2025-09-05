@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Goal, GoalReflection, MissedReason } from '../../../types';
 import { MISSED_REASON_LABELS } from '../../../lib/category-system';
 import { Card, CardContent } from '../../ui/Card';
+import TimeService from '../../../lib/time-service';
 
 interface ReflectionWorkflowProps {
   today: string;
@@ -48,25 +49,6 @@ export function ReflectionWorkflow({
   const [customReason, setCustomReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showOverallReflection, setShowOverallReflection] = useState(false);
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Vandaag';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Gisteren';
-    } else {
-      return date.toLocaleDateString('nl-NL', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-      });
-    }
-  };
 
   const currentGoal = todayGoals[currentGoalIndex];
   const currentReflection = goalReflections[currentGoal?.id];
@@ -374,7 +356,7 @@ export function ReflectionWorkflow({
             </LinearGradient>
           </View>
           <View style={styles.heroTextContainer}>
-            <Text style={styles.heroTitle}>Reflectie {formatDate(today)}</Text>
+            <Text style={styles.heroTitle}>Reflectie {TimeService.formatRelativeDate(today)}</Text>
             <Text style={styles.heroSubtitle}>
               Doel {currentGoalIndex + 1} van {todayGoals.length}
             </Text>
