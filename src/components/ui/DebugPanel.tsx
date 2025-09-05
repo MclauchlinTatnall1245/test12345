@@ -27,19 +27,32 @@ class ConsoleCapture {
     const originalError = console.error;
     
     console.log = (...args) => {
-      this.addLog('log', args.join(' '));
+      this.addLog('log', this.formatArgs(args));
       originalLog.apply(console, args);
     };
     
     console.warn = (...args) => {
-      this.addLog('warn', args.join(' '));
+      this.addLog('warn', this.formatArgs(args));
       originalWarn.apply(console, args);
     };
     
     console.error = (...args) => {
-      this.addLog('error', args.join(' '));
+      this.addLog('error', this.formatArgs(args));
       originalError.apply(console, args);
     };
+  }
+  
+  private static formatArgs(args: any[]): string {
+    return args.map(arg => {
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch (error) {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
   }
   
   private static addLog(level: string, message: string) {
